@@ -5,22 +5,28 @@ import re
 
 class Ports(PluginTemplateExtension):
     def page(self):
+        ports_chassis = {}
+        dv = {}
+                
         obj = self.context["object"]
         request = self.context["request"]
         url = request.build_absolute_uri(obj.get_absolute_url())
         try:
-            dv = DeviceView.objects.get(device_type=obj.device_type)
+            if obj.virtual_chassis is None:
+                dv[1] = DeviceView.objects.get(device_type=obj.device_type).grid_template_area.replace(".area", ".area1")
+            else:
+                for member in obj.virtual_chassis.members.all():
+                    dv[member.vc_position] = DeviceView.objects.get(device_type=member.device_type).grid_template_area.replace(".area", ".area"+str(member.vc_position))
         except:
             return ""
 
         interfaces = obj.vc_interfaces()
-        ports_chassis = {}
 
-        for inte in interfaces:
+        for itf in interfaces:
             regex = r"^(?P<type>([a-z]+))((?P<switch>[0-9]+)\/)?((?P<module>[0-9]+)\/)?((?P<port>[0-9]+))$"
-            matches = re.search(regex, inte.name.lower())
+            matches = re.search(regex, itf.name.lower())
             if matches:
-                inte.stylename = (
+                itf.stylename = (
                     (matches["type"] or "")
                     + (matches["module"] or "")
                     + "-"
@@ -30,7 +36,7 @@ class Ports(PluginTemplateExtension):
                 if sw not in ports_chassis and sw != 0:
                     ports_chassis[sw] = []
                 if sw != 0:
-                    ports_chassis[sw].append(inte)
+                    ports_chassis[sw].append(itf)
 
         return self.render(
             "netbox_device_view/ports.html",

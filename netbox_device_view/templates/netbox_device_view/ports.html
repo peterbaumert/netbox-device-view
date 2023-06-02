@@ -1,25 +1,28 @@
-{% load static %}
-{% block head %}
-<link rel="stylesheet" href="{% static 'netbox_device_view/css/device_view.css' %}">
+{% load static %} {% block head %}
+<link
+	rel="stylesheet"
+	href="{% static 'netbox_device_view/css/device_view.css' %}"
+/>
 <style>
 	{% autoescape off %}
-	{{ dv.grid_template_area }}
+	{% for id, ddv in dv.items %}
+	{{ ddv }}
+	{% endfor %}
 	{% endautoescape %}
 </style>
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 <div class="card">
-	<h2 class="card-header">
-		Switchview {{ object.name }}
-	</h2>
+	<h2 class="card-header">Switchview {{ object.name }}</h2>
 	<div class="card-body">
-		{% spaceless %}
-		{% for switch, interfaces in ports_chassis.items %}
-		Switch {{switch}}
-		<div class="switchview area">
+		{% spaceless %} {% for switch, interfaces in ports_chassis.items %} Switch
+		{{switch}}
+		<div class="switchview area{{switch}}">
 			{% for int in interfaces %}
-			<p class ="{% if int.enabled and int.connected_endpoints|length > 0 %}bg-success{% elif int.enabled %}bg-secondary{% else %}bg-danger{% endif %}" title="{{ int.name }}" style="grid-area: {{ int.stylename }}">
+			<p
+				class="{% if int.enabled and int.connected_endpoints|length > 0 %}bg-success{% elif int.enabled %}bg-secondary{% else %}bg-danger{% endif %}"
+				title="{{ int.name }}"
+				style="grid-area: {{ int.stylename }}"
+			>
 				{% if int.enabled and int.connected_endpoints|length > 0 %}
 				<span class="text-white"><i class="mdi mdi-check-bold"></i></span>
 				{% elif int.enabled %}
@@ -30,8 +33,7 @@
 			</p>
 			{% endfor %}
 		</div>
-		{% endfor %}
-		{% endspaceless %}
+		{% endfor %} {% endspaceless %}
 	</div>
 </div>
 {% endblock %}
