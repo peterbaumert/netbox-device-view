@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="netbox-device-view",
-    version="0.1",
+    version="0.1.0-alpha",
     description="NetBox Device View plugin",
     packages=find_packages(),
     author='Peter Baumert',
