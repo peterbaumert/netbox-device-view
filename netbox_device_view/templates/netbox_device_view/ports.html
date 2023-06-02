@@ -16,7 +16,9 @@
 	<div class="card-body">
 		{% spaceless %} {% for switch, interfaces in ports_chassis.items %} Switch
 		{{switch}}
-		<div class="switchview area{{switch}}">
+		<div
+			class="switchview area{{switch}}{% for sw, modules in modules.items %}{% if sw == switch %}{% for module in modules %} module{{module.module_type.model}}{% endfor %}{% endif %}{% endfor %}"
+		>
 			{% for int in interfaces %}
 			<p
 				class="{% if int.enabled and int.connected_endpoints|length > 0 %}bg-success{% elif int.enabled %}bg-secondary{% else %}bg-danger{% endif %}"

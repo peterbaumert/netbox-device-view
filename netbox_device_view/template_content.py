@@ -7,16 +7,25 @@ class Ports(PluginTemplateExtension):
     def page(self):
         ports_chassis = {}
         dv = {}
-                
+        modules = {}
+
         obj = self.context["object"]
         request = self.context["request"]
         url = request.build_absolute_uri(obj.get_absolute_url())
         try:
             if obj.virtual_chassis is None:
-                dv[1] = DeviceView.objects.get(device_type=obj.device_type).grid_template_area.replace(".area", ".area1")
+                dv[1] = DeviceView.objects.get(
+                    device_type=obj.device_type
+                ).grid_template_area.replace(".area", ".area1")
+                modules[1] = obj.modules.all()
             else:
                 for member in obj.virtual_chassis.members.all():
-                    dv[member.vc_position] = DeviceView.objects.get(device_type=member.device_type).grid_template_area.replace(".area", ".area"+str(member.vc_position))
+                    dv[member.vc_position] = DeviceView.objects.get(
+                        device_type=member.device_type
+                    ).grid_template_area.replace(
+                        ".area", ".area" + str(member.vc_position)
+                    )
+                    modules[member.vc_position] = member.modules.all()
         except:
             return ""
 
@@ -40,7 +49,11 @@ class Ports(PluginTemplateExtension):
 
         return self.render(
             "netbox_device_view/ports.html",
-            extra_context={"ports_chassis": ports_chassis, "dv": dv},
+            extra_context={
+                "ports_chassis": ports_chassis,
+                "dv": dv,
+                "modules": modules,
+            },
         )
 
 
