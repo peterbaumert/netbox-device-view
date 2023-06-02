@@ -7,28 +7,51 @@ import utilities.json
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
-        ('dcim', '0172_larger_power_draw_values'),
-        ('extras', '0092_delete_jobresult'),
+        ("dcim", "0172_larger_power_draw_values"),
+        ("extras", "0092_delete_jobresult"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='DeviceView',
+            name="DeviceView",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False)),
-                ('created', models.DateTimeField(auto_now_add=True, null=True)),
-                ('last_updated', models.DateTimeField(auto_now=True, null=True)),
-                ('custom_field_data', models.JSONField(blank=True, default=dict, encoder=utilities.json.CustomFieldJSONEncoder)),
-                ('grid_template_area', models.TextField()),
-                ('device_type', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='+', to='dcim.devicetype')),
-                ('tags', taggit.managers.TaggableManager(through='extras.TaggedItem', to='extras.Tag')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False
+                    ),
+                ),
+                ("created", models.DateTimeField(auto_now_add=True, null=True)),
+                ("last_updated", models.DateTimeField(auto_now=True, null=True)),
+                (
+                    "custom_field_data",
+                    models.JSONField(
+                        blank=True,
+                        default=dict,
+                        encoder=utilities.json.CustomFieldJSONEncoder,
+                    ),
+                ),
+                ("grid_template_area", models.TextField()),
+                (
+                    "device_type",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="+",
+                        to="dcim.devicetype",
+                    ),
+                ),
+                (
+                    "tags",
+                    taggit.managers.TaggableManager(
+                        through="extras.TaggedItem", to="extras.Tag"
+                    ),
+                ),
             ],
             options={
-                'ordering': ('device_type',),
+                "ordering": ("device_type",),
             },
         ),
     ]

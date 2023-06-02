@@ -5,7 +5,7 @@ setup(
     version="0.1.0-alpha",
     description="NetBox Device View plugin",
     packages=find_packages(),
-    author='Peter Baumert',
+    author="Peter Baumert",
     include_package_data=True,
     zip_safe=False,
     install_requires=[],
