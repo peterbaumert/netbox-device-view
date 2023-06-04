@@ -35,6 +35,13 @@ python3 manage.py collectstatic --no-input
 
 For each Device Type you need to add a DeviceView.
 
+It is based on a CSS grid view with 32 columns and 2 rows.
+You need to specify the grid-template-areas. 
+- Interface positions will use the following format: {interfacename}{module}-{port}
+- leading "empties" can be specified as x
+- trailing "empties" can be specified as z
+- between "empties" can be named s{0-99}
+
 Example for Cisco C9300-24T with 8x 10G module
 
 ```
