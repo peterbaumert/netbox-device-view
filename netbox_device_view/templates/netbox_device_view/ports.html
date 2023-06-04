@@ -22,8 +22,11 @@
 			{% for int in interfaces %}
 			<p
 				class="{% if int.enabled and int.connected_endpoints|length > 0 %}bg-success{% elif int.enabled %}bg-secondary{% else %}bg-danger{% endif %}"
-				title="{{ int.name }}"
+				title="{{ int.name }}{% if int.connected_endpoints|length > 0 %}<hr>{{ int.connected_endpoints.0.device }} | {{ int.connected_endpoints.0.name }}{% endif %}"
 				style="grid-area: {{ int.stylename }}"
+				data-bs-toggle="tooltip"
+				data-bs-html="true"
+				data-bs-custom-class="device-view-tooltip"
 			>
 				{% if int.enabled and int.connected_endpoints|length > 0 %}
 				<span class="text-white"><i class="mdi mdi-check-bold"></i></span>
