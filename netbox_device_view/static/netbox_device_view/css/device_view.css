@@ -13,21 +13,6 @@
 	margin-bottom: 10px;
 	min-height: 0;
 	min-width: 0;
-	--background-image: repeating-linear-gradient(
-			90deg,
-			#eee 0px,
-			#eee 1px,
-			transparent 2px,
-			transparent 22px
-		),
-		repeating-linear-gradient(
-			180deg,
-			#eee 0px,
-			#eee 1px,
-			transparent 2px,
-			transparent 22px
-		);
-	background-position: 8px 8px;
 	height: 42px;
 	width: 702px;
 	margin: auto;
