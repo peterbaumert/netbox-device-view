@@ -5,8 +5,7 @@ import re
 
 
 class Ports(PluginTemplateExtension):
-    
-    def process_interfaces(self, interfaces, ports_chassis, switch = 1):
+    def process_interfaces(self, interfaces, ports_chassis, switch=1):
         for itf in interfaces:
             regex = r"^(?P<type>([a-z]+))((?P<switch>[0-9]+)\/)?((?P<module>[0-9]+)\/)?((?P<port>[0-9]+))$"
             matches = re.search(regex, itf.name.lower())
@@ -18,13 +17,17 @@ class Ports(PluginTemplateExtension):
                     + matches["port"]
                 )
                 sw = int(matches["switch"] or 0)
-                if (hasattr(itf, 'mgmt_only') and itf.mgmt_only and itf.type != "virtual") or hasattr(itf, 'mgmt_only') == False:
+                if (
+                    hasattr(itf, "mgmt_only")
+                    and itf.mgmt_only
+                    and itf.type != "virtual"
+                ) or hasattr(itf, "mgmt_only") == False:
                     sw = switch
                 if sw not in ports_chassis and sw != 0:
                     ports_chassis[sw] = []
                 if sw != 0:
                     ports_chassis[sw].append(itf)
-        
+
     def page(self):
         ports_chassis = {}
         dv = {}
@@ -40,17 +43,23 @@ class Ports(PluginTemplateExtension):
             ).grid_template_area.replace(".area", ".area1")
             modules[1] = obj.modules.all()
             self.process_interfaces(obj.interfaces.all(), ports_chassis)
-            self.process_interfaces(ConsolePort.objects.filter(device_id=obj.id), ports_chassis)
+            self.process_interfaces(
+                ConsolePort.objects.filter(device_id=obj.id), ports_chassis
+            )
         else:
             for member in obj.virtual_chassis.members.all():
                 dv[member.vc_position] = DeviceView.objects.get(
                     device_type=member.device_type
-                ).grid_template_area.replace(
-                    ".area", ".area" + str(member.vc_position)
-                )
+                ).grid_template_area.replace(".area", ".area" + str(member.vc_position))
                 modules[member.vc_position] = member.modules.all()
-                self.process_interfaces(member.interfaces.all(), ports_chassis, member.vc_position)
-                self.process_interfaces(ConsolePort.objects.filter(device_id=member.id), ports_chassis, member.vc_position)
+                self.process_interfaces(
+                    member.interfaces.all(), ports_chassis, member.vc_position
+                )
+                self.process_interfaces(
+                    ConsolePort.objects.filter(device_id=member.id),
+                    ports_chassis,
+                    member.vc_position,
+                )
         # except:
         #     return ""
 
