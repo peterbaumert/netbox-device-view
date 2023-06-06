@@ -20,7 +20,8 @@
 			class="switchview area{{switch}}{% for sw, modules in modules.items %}{% if sw == switch %}{% for module in modules %} module{{module.module_type.model}}{% endfor %}{% endif %}{% endfor %}"
 		>
 			{% for int in interfaces %}
-			<p
+			<a
+				href="{{int.get_absolute_url}}trace/"
 				class="{% if int.enabled and int.connected_endpoints|length > 0 %}bg-success{% elif int.enabled %}bg-secondary{% else %}bg-danger{% endif %}"
 				title="{{ int.name }}{% if int.connected_endpoints|length > 0 %}<hr>{{ int.connected_endpoints.0.device }} | {{ int.connected_endpoints.0.name }}{% endif %}"
 				style="grid-area: {{ int.stylename }}"
@@ -35,7 +36,7 @@
 				{% else %}
 				<span class="text-white"><i class="mdi mdi-close-thick"></i></span>
 				{% endif %}
-			</p>
+			</a>
 			{% endfor %}
 		</div>
 		{% endfor %} {% endspaceless %}
