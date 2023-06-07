@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="netbox-device-view",
-    version="0.1.0-alpha",
+    version="0.2.0-alpha",
     description="NetBox Device View plugin",
     packages=find_packages(),
     author="Peter Baumert",
@@ -15,4 +15,9 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/peterbaumert/netbox-device-view",
+    keywords=["netbox", "netbox-plugin"],
+    classifiers=[
+        "Framework :: Django",
+        "Programming Language :: Python :: 3",
+    ],
 )

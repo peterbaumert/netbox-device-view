@@ -13,11 +13,17 @@ To ensure NetBox Device View plugin is automatically re-installed during future 
 # echo netbox-device-view >> local_requirements.txt
 ```
 
-Once installed, the plugin needs to be enabled in your `configuration.py`
+Once installed, the plugin needs to be enabled in your `configuration.py` and optionally the `show_on_device_tab` setting enabled.
 
 ```python
 # In your configuration.py
 PLUGINS = ["netbox-device-view"]
+
+PLUGINS_CONFIG = {
+    'netbox_device_view': {
+        'show_on_device_tab': True,
+    },
+}
 ```
 
 First run `source /opt/netbox/venv/bin/activate` to enter the Python virtual environment.
