@@ -8,9 +8,7 @@ class NetBoxDeviceViewConfig(PluginConfig):
     version = "0.1.0-alpha"
     base_url = "device_view"
     required_settings = []
-    default_settings = {
-        'show_on_device_tab': False
-    }
+    default_settings = {"show_on_device_tab": False}
 
 
 config = NetBoxDeviceViewConfig

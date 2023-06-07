@@ -5,6 +5,7 @@ from utilities.views import ViewTab, register_model_view
 from .utils import prepare
 import pprint
 
+
 class DeviceViewView(generic.ObjectView):
     queryset = models.DeviceView.objects
 
@@ -22,23 +23,29 @@ class DeviceViewEditView(generic.ObjectEditView):
 class DeviceViewDeleteView(generic.ObjectDeleteView):
     queryset = models.DeviceView.objects
 
-@register_model_view(Device, 'deviceview', path='device-view')
+
+@register_model_view(Device, "deviceview", path="device-view")
 class DeviceDeviceView(generic.ObjectView):
-    queryset=models.DeviceView.objects
-    
+    queryset = models.DeviceView.objects
+
     tab = ViewTab(
-        label='Device View',
-        badge=lambda obj: models.DeviceView.objects.filter(device_type=obj.device_type).count(),
-        hide_if_empty=True
+        label="Device View",
+        badge=lambda obj: models.DeviceView.objects.filter(
+            device_type=obj.device_type
+        ).count(),
+        hide_if_empty=True,
     )
+
     def get_extra_context(self, request, instance):
         dv, modules, ports_chassis = prepare(instance)
         return {
-            'device_view': models.DeviceView.objects.filter(device_type=instance.device_type).first(),
-            'dv': dv,
-            'moduels': modules,
-            'ports_chassis': ports_chassis
-            }
-    
+            "device_view": models.DeviceView.objects.filter(
+                device_type=instance.device_type
+            ).first(),
+            "dv": dv,
+            "moduels": modules,
+            "ports_chassis": ports_chassis,
+        }
+
     def get_object(self, **kwargs):
-        return Device.objects.get(pk=kwargs.get('pk'))
+        return Device.objects.get(pk=kwargs.get("pk"))

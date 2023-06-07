@@ -4,6 +4,7 @@ from django.core.exceptions import ObjectDoesNotExist
 
 import re
 
+
 def process_interfaces(interfaces, ports_chassis, switch=1):
     if interfaces is not None:
         for itf in interfaces:
@@ -29,11 +30,12 @@ def process_interfaces(interfaces, ports_chassis, switch=1):
                     ports_chassis[sw].append(itf)
     return ports_chassis
 
+
 def prepare(obj):
     ports_chassis = {}
     dv = {}
     modules = {}
-    
+
     try:
         if obj.virtual_chassis is None:
             dv[1] = DeviceView.objects.get(
@@ -60,5 +62,5 @@ def prepare(obj):
                 )
     except ObjectDoesNotExist:
         return None, None, None
-    
+
     return dv, modules, ports_chassis

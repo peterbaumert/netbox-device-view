@@ -2,6 +2,7 @@ from extras.plugins import PluginTemplateExtension
 from .utils import prepare
 from django.conf import settings
 
+
 class Ports(PluginTemplateExtension):
     def page(self):
         obj = self.context["object"]
@@ -9,7 +10,7 @@ class Ports(PluginTemplateExtension):
         url = request.build_absolute_uri(obj.get_absolute_url())
 
         dv, modules, ports_chassis = prepare(obj)
-        
+
         if dv is None or modules is None or ports_chassis is None:
             return ""
 
