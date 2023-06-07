@@ -1,0 +1,51 @@
+{% extends 'dcim/device/base.html' %}
+{% load render_table from django_tables2%}
+{% load buttons %}
+{% load static %}
+{% load helpers %}
+{% load plugins %}
+{% block head %}
+<link
+	rel="stylesheet"
+	href="{% static 'netbox_device_view/css/device_view.css' %}"
+/>
+<style>
+	{% autoescape off %}
+	{% for id, ddv in dv.items %}
+	{{ ddv }}
+	{% endfor %}
+	{% endautoescape %}
+</style>
+{% endblock %}
+{% block content %}
+<div class="card">
+	<div class="card-body">
+		{% spaceless %} {% for switch, interfaces in ports_chassis.items %} Device
+		{{switch}}
+		<div
+			class="switchview area{{switch}}{% for sw, modules in modules.items %}{% if sw == switch %}{% for module in modules %} module{{module.module_type.model}}{% endfor %}{% endif %}{% endfor %}"
+		>
+			{% for int in interfaces %}
+			<a
+				href="{{int.get_absolute_url}}trace/"
+				class="{% if int.enabled and int.connected_endpoints|length > 0 %}bg-success{% elif int.enabled %}bg-secondary{% else %}bg-danger{% endif %}"
+				title="{{ int.name }}{% if int.connected_endpoints|length > 0 %}<hr>{{ int.connected_endpoints.0.device }} | {{ int.connected_endpoints.0.name }}{% endif %}"
+				style="grid-area: {{ int.stylename }}"
+				data-bs-toggle="tooltip"
+				data-bs-html="true"
+				data-bs-custom-class="device-view-tooltip"
+			>
+				{% if int.enabled and int.connected_endpoints|length > 0 %}
+				<span class="text-white"><i class="mdi mdi-check-bold"></i></span>
+				{% elif int.enabled %}
+				<span class="text-white"><i class="mdi mdi-check-bold"></i></span>
+				{% else %}
+				<span class="text-white"><i class="mdi mdi-close-thick"></i></span>
+				{% endif %}
+			</a>
+			{% endfor %}
+		</div>
+		{% endfor %} {% endspaceless %}
+	</div>
+</div>
+{% endblock %}
