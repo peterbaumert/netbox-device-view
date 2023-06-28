@@ -5,10 +5,10 @@ from django.core.exceptions import ObjectDoesNotExist
 import re
 
 
-def process_interfaces(interfaces, ports_chassis, switch=1):
+def process_interfaces(interfaces, ports_chassis, dev=1):
     if interfaces is not None:
         for itf in interfaces:
-            regex = r"^(?P<type>([a-z]+))((?P<switch>[0-9]+)\/)?((?P<module>[0-9]+)\/)?((?P<port>[0-9]+))$"
+            regex = r"^(?P<type>([a-z]+))((?P<dev>[0-9]+)\/)?((?P<module>[0-9]+)\/)?((?P<port>[0-9]+))$"
             matches = re.search(regex, itf.name.lower())
             if matches:
                 itf.stylename = (
@@ -17,19 +17,31 @@ def process_interfaces(interfaces, ports_chassis, switch=1):
                     + "-"
                     + matches["port"]
                 )
-                sw = int(matches["switch"] or 0)
+                sw = int(matches["dev"] or 0)
                 if (
                     hasattr(itf, "mgmt_only")
                     and itf.mgmt_only
                     and itf.type != "virtual"
                 ) or hasattr(itf, "mgmt_only") == False:
-                    sw = switch
+                    sw = dev
                 if sw not in ports_chassis and sw != 0:
                     ports_chassis[sw] = []
                 if sw != 0:
-                    ports_chassis[sw].append(itf)
+                    ports_chassis[sw].append(itf)           
     return ports_chassis
 
+def process_ports(ports, ports_chassis, dev=1):
+    if ports is not None:
+        for port in ports:
+            sw = dev
+            if port.type == "virtual":
+                sw = 0
+            if sw not in ports_chassis and sw != 0:
+                ports_chassis[sw] = []
+            if sw != 0:
+                port.stylename = re.sub(r"[^.a-zA-Z\d]",'-',port.name.lower())
+                ports_chassis[sw].append(port)   
+    return ports_chassis
 
 def prepare(obj):
     ports_chassis = {}
@@ -42,6 +54,7 @@ def prepare(obj):
                 device_type=obj.device_type
             ).grid_template_area.replace(".area", ".area1")
             modules[1] = obj.modules.all()
+            ports_chassis = process_ports(obj.frontports.all(), ports_chassis)
             ports_chassis = process_interfaces(obj.interfaces.all(), ports_chassis)
             ports_chassis = process_interfaces(
                 ConsolePort.objects.filter(device_id=obj.id), ports_chassis
