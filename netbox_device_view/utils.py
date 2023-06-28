@@ -27,8 +27,9 @@ def process_interfaces(interfaces, ports_chassis, dev=1):
                 if sw not in ports_chassis and sw != 0:
                     ports_chassis[sw] = []
                 if sw != 0:
-                    ports_chassis[sw].append(itf)           
+                    ports_chassis[sw].append(itf)
     return ports_chassis
+
 
 def process_ports(ports, ports_chassis, dev=1):
     if ports is not None:
@@ -39,9 +40,10 @@ def process_ports(ports, ports_chassis, dev=1):
             if sw not in ports_chassis and sw != 0:
                 ports_chassis[sw] = []
             if sw != 0:
-                port.stylename = re.sub(r"[^.a-zA-Z\d]",'-',port.name.lower())
-                ports_chassis[sw].append(port)   
+                port.stylename = re.sub(r"[^.a-zA-Z\d]", "-", port.name.lower())
+                ports_chassis[sw].append(port)
     return ports_chassis
+
 
 def prepare(obj):
     ports_chassis = {}

@@ -24,6 +24,7 @@ class DeviceViewEditView(generic.ObjectEditView):
 class DeviceViewDeleteView(generic.ObjectDeleteView):
     queryset = models.DeviceView.objects
 
+
 @register_model_view(Device, "deviceview", path="device-view")
 class DeviceDeviceView(generic.ObjectView):
     queryset = models.DeviceView.objects
@@ -45,8 +46,8 @@ class DeviceDeviceView(generic.ObjectView):
             "dv": dv,
             "moduels": modules,
             "ports_chassis": ports_chassis,
-            "cable_colors": request.GET.get('cable_colors', 'off'),
-            "something_else": request.GET.get('something_else', 'off'),
+            "cable_colors": request.GET.get("cable_colors", "off"),
+            "something_else": request.GET.get("something_else", "off"),
         }
 
     def get_object(self, **kwargs):
