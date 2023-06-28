@@ -34,13 +34,19 @@ def process_interfaces(interfaces, ports_chassis, dev=1):
 def process_ports(ports, ports_chassis, dev=1):
     if ports is not None:
         for port in ports:
+            port.is_front_port = True
+            regex = r"^(?P<type>([A-Za-z]+))[\s]?((?P<dev>[0-9]+)\/)?((?P<module>[0-9]+)\/)?((?P<port>[0-9]+))$"
+            matches = re.search(regex, port.name.lower())
+            if matches:
+                port.stylename = (matches["type"] or "") + "-" + matches["port"]
+            else:
+                port.stylename = re.sub(r"[^.a-zA-Z\d]", "-", port.name.lower())
             sw = dev
             if port.type == "virtual":
                 sw = 0
             if sw not in ports_chassis and sw != 0:
                 ports_chassis[sw] = []
             if sw != 0:
-                port.stylename = re.sub(r"[^.a-zA-Z\d]", "-", port.name.lower())
                 ports_chassis[sw].append(port)
     return ports_chassis
 
@@ -58,7 +64,7 @@ def prepare(obj):
             modules[1] = obj.modules.all()
             ports_chassis = process_ports(obj.frontports.all(), ports_chassis)
             ports_chassis = process_interfaces(obj.interfaces.all(), ports_chassis)
-            ports_chassis = process_interfaces(
+            ports_chassis = process_ports(
                 ConsolePort.objects.filter(device_id=obj.id), ports_chassis
             )
         else:
@@ -70,7 +76,7 @@ def prepare(obj):
                 ports_chassis = process_interfaces(
                     member.interfaces.all(), ports_chassis, member.vc_position
                 )
-                ports_chassis = process_interfaces(
+                ports_chassis = process_ports(
                     ConsolePort.objects.filter(device_id=member.id),
                     ports_chassis,
                     member.vc_position,

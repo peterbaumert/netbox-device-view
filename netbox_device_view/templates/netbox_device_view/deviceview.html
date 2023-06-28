@@ -32,13 +32,24 @@
 				{% if cable_colors == "on" and int.cable.color == "" or cable_colors == "on" and int.cable == None %}
 				nocolor
 				{% elif cable_colors == "on" %}
-				{% elif int.enabled and int.connected_endpoints|length > 0 %}
+				{% elif int.enabled and int.connected_endpoints|length > 0 or int.is_front_port and int.link_peers|length > 0 %}
 				bg-success
 				{% elif int.enabled %}
 				bg-secondary
 				{% else %}
-				bg-danger{% endif %}"
-				title="{{ int.name }}{% if int.connected_endpoints|length > 0 %}<hr>{{ int.connected_endpoints.0.device }} | {{ int.connected_endpoints.0.name }}{% endif %}"
+				bg-danger
+				{% endif %}"
+				title="{{ int.name }}
+				{% if int.connected_endpoints|length > 0 %}<hr>
+					{% for ce in int.connected_endpoints %}
+					{{ ce.device }} | {{ ce.name }}
+					{% endfor %}
+				{% elif int.link_peers|length > 0 %}<hr>
+					{% for lp in int.link_peers %}
+					{{ lp.device }} | {{ lp.name }}
+					{% endfor %}
+				{% endif %}
+				"
 				style="grid-area: {{ int.stylename }};
 				{% if cable_colors == "on" and int.cable.color != "" %}
 				background-color: #{{ int.cable.color }}
@@ -48,7 +59,7 @@
 				data-bs-html="true"
 				data-bs-custom-class="device-view-tooltip"
 			>
-				{% if int.enabled and int.connected_endpoints|length > 0 %}
+				{% if int.enabled and int.connected_endpoints|length > 0  or int.is_front_port and int.link_peers|length > 0 %}
 				<span class="text-white"><i class="mdi mdi-check-bold"></i></span>
 				{% elif int.enabled %}
 				<span class="text-white"><i class="mdi mdi-check-bold"></i></span>
