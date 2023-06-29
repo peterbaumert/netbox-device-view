@@ -48,7 +48,7 @@ You need to specify the grid-template-areas.
 - trailing "empties" can be specified as z
 - between "empties" can be named s{0-99}
 
-Example for Cisco C9300-24T with 8x 10G module
+Example for Cisco C9300-24T with 8x 10G module ( more in [examples](https://github.com/peterbaumert/netbox-device-view/blob/main/examples/) folder )
 
 ```
 /* C9300-24T */
