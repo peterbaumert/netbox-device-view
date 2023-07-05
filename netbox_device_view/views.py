@@ -3,6 +3,7 @@ from dcim.models import Device
 from . import forms, models, tables, filtersets
 from utilities.views import ViewTab, register_model_view
 from .utils import prepare
+from django.http import HttpResponse
 import pprint
 
 
@@ -45,6 +46,8 @@ class DeviceDeviceView(generic.ObjectView):
             "dv": dv,
             "moduels": modules,
             "ports_chassis": ports_chassis,
+            "cable_colors": request.GET.get("cable_colors", "off"),
+            "something_else": request.GET.get("something_else", "off"),
         }
 
     def get_object(self, **kwargs):

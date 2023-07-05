@@ -1,0 +1,2 @@
+recursive-include netbox_device_view/static *
+recursive-include netbox_device_view/templates *
