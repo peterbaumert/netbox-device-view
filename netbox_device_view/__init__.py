@@ -7,7 +7,7 @@ metadata = metadata("netbox_device_view")
 class NetBoxDeviceViewConfig(PluginConfig):
     name = metadata.get("Name").replace("-", "_")
     verbose_name = metadata.get("Summary")
-    description = metadata.get("Description")
+    description = "Plugin to visualize device ports"
     version = metadata.get("Version")
     author = metadata.get("Author")
     base_url = "device_view"

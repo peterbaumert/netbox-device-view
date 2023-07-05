@@ -17,7 +17,7 @@ Once installed, the plugin needs to be enabled in your `configuration.py` and op
 
 ```python
 # In your configuration.py
-PLUGINS = ["netbox-device-view"]
+PLUGINS = ["netbox_device_view"]
 
 PLUGINS_CONFIG = {
     'netbox_device_view': {
@@ -33,7 +33,7 @@ Then run
 ```bash
 cd /opt/netbox/netbox
 pip3 install netbox-device-view
-python3 manage.py migrate netbox-device-view
+python3 manage.py migrate netbox_device_view
 python3 manage.py collectstatic --no-input
 ```
 
