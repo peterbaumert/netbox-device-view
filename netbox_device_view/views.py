@@ -44,7 +44,7 @@ class DeviceDeviceView(generic.ObjectView):
                 device_type=instance.device_type
             ).first(),
             "dv": dv,
-            "moduels": modules,
+            "modules": modules,
             "ports_chassis": ports_chassis,
             "cable_colors": request.GET.get("cable_colors", "off"),
             "something_else": request.GET.get("something_else", "off"),
