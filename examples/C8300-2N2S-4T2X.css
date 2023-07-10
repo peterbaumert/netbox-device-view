@@ -1,0 +1,6 @@
+/* C8300-2N2S-4T2X */
+.deviceview.area {
+	grid-template-areas:
+		"x con-0 s1 gigabitethernet0-0 gigabitethernet0-2 tengigabitethernet0-4"
+		"x y s1 gigabitethernet0-1 gigabitethernet0-3 tengigabitethernet0-5";
+}

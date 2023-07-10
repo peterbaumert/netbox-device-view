@@ -17,16 +17,16 @@ def process_interfaces(interfaces, ports_chassis, dev=1):
                     + "-"
                     + matches["port"]
                 )
-                sw = int(matches["dev"] or 0)
+                sw = int(matches["dev"] or 999)
                 if (
                     hasattr(itf, "mgmt_only")
                     and itf.mgmt_only
                     and itf.type != "virtual"
                 ) or hasattr(itf, "mgmt_only") == False:
                     sw = dev
-                if sw not in ports_chassis and sw != 0:
+                if sw not in ports_chassis and sw != 999:
                     ports_chassis[sw] = []
-                if sw != 0:
+                if sw != 999:
                     ports_chassis[sw].append(itf)
     return ports_chassis
 
@@ -43,10 +43,10 @@ def process_ports(ports, ports_chassis, where):
                 port.stylename = re.sub(r"[^.a-zA-Z\d]", "-", port.name.lower())
             sw = where
             if port.type == "virtual":
-                sw = 0
-            if sw not in ports_chassis and sw != 0:
+                sw = 999
+            if sw not in ports_chassis and sw != 999:
                 ports_chassis[sw] = []
-            if sw != 0:
+            if sw != 999:
                 ports_chassis[sw].append(port)
     return ports_chassis
 
@@ -66,7 +66,9 @@ def prepare(obj):
             ports_chassis = process_ports(obj.frontports.all(), ports_chassis, "Front")
             ports_chassis = process_ports(obj.rearports.all(), ports_chassis, "Rear")
             ports_chassis = process_ports(
-                ConsolePort.objects.filter(device_id=obj.id), ports_chassis, 1
+                ConsolePort.objects.filter(device_id=obj.id),
+                ports_chassis,
+                list(ports_chassis.keys())[0],
             )
         else:
             for member in obj.virtual_chassis.members.all():

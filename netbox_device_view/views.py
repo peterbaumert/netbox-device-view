@@ -39,12 +39,16 @@ class DeviceDeviceView(generic.ObjectView):
 
     def get_extra_context(self, request, instance):
         dv, modules, ports_chassis = prepare(instance)
+        height = (
+            instance.device_type.u_height * 2 * 20 + instance.device_type.u_height * 2
+        )
         return {
             "device_view": models.DeviceView.objects.filter(
                 device_type=instance.device_type
             ).first(),
             "dv": dv,
             "modules": modules,
+            "height": height,
             "ports_chassis": ports_chassis,
             "cable_colors": request.GET.get("cable_colors", "off"),
             "something_else": request.GET.get("something_else", "off"),

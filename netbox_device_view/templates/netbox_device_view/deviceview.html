@@ -15,6 +15,12 @@
 	{{ ddv }}
 	{% endfor %}
 	{% endautoescape %}
+	{% if height %}
+	
+	.deviceview {
+		height:{{ height }}px;
+	}
+	{% endif %}
 </style>
 {% endblock %}
 {% block content %}
