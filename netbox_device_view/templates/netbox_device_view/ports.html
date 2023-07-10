@@ -9,15 +9,21 @@
 	{{ ddv }}
 	{% endfor %}
 	{% endautoescape %}
+	{% if height %}
+
+	.deviceview {
+		height:{{ height }}px;
+	}
+	{% endif %}
 </style>
 {% endblock %} {% block content %}
 <div class="card">
-	<h2 class="card-header">Switchview {{ object.name }}</h2>
+	<h2 class="card-header">Deviceview {{ object.name }}</h2>
 	<div class="card-body">
-		{% spaceless %} {% for switch, interfaces in ports_chassis.items %} Switch
+		{% spaceless %} {% for switch, interfaces in ports_chassis.items %} Device
 		{{switch}}
 		<div
-			class="switchview area{{switch}}{% for sw, modules in modules.items %}{% if sw == switch %}{% for module in modules %} module{{module.module_type.model}}{% endfor %}{% endif %}{% endfor %}"
+			class="deviceview area d{{switch}}{% for sw, modules in modules.items %}{% if sw == switch %}{% for module in modules %} module{{module.module_type.model}}{% endfor %}{% endif %}{% endfor %}"
 		>
 			{% for int in interfaces %}
 			<a

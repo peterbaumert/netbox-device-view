@@ -11,15 +11,18 @@ class Ports(PluginTemplateExtension):
 
         dv, modules, ports_chassis = prepare(obj)
 
+        height = obj.device_type.u_height * 2 * 20 + obj.device_type.u_height * 2
+
         if dv is None or modules is None or ports_chassis is None:
             return ""
 
         return self.render(
             "netbox_device_view/ports.html",
             extra_context={
-                "ports_chassis": ports_chassis,
                 "dv": dv,
                 "modules": modules,
+                "height": height,
+                "ports_chassis": ports_chassis,
             },
         )
 
