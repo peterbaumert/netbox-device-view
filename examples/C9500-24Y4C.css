@@ -2,5 +2,5 @@
 .deviceview.area {
 	grid-template-areas:
 		"gigabitethernet-0 x twentyfivegige0-1 twentyfivegige0-3 twentyfivegige0-5 twentyfivegige0-7 twentyfivegige0-9 twentyfivegige0-11 twentyfivegige0-13 twentyfivegige0-15 twentyfivegige0-17 twentyfivegige0-19 twentyfivegige0-21 twentyfivegige0-23 s1 s1 s1 s1 s1 s1 s1 s1 s1 s1 s1 s1 s1 s1 hundredgige0-25 hundredgige0-25 hundredgige0-27 hundredgige0-27"
-		"con-0 x twentyfivegige0-2 twentyfivegige0-4 twentyfivegige0-6 twentyfivegige0-8 twentyfivegige0-10 twentyfivegige0-12 twentyfivegige0-14 twentyfivegige0-16 twentyfivegige0-18 twentyfivegige0-20 twentyfivegige0-22 twentyfivegige0-24 s1 s1 s1 s1 s1 s1 s1 s1 s1 s1 s1 s1 s1 s1  hundredgige0-26 hundredgige0-26 hundredgige0-28 hundredgige0-28";
+		"con0 x twentyfivegige0-2 twentyfivegige0-4 twentyfivegige0-6 twentyfivegige0-8 twentyfivegige0-10 twentyfivegige0-12 twentyfivegige0-14 twentyfivegige0-16 twentyfivegige0-18 twentyfivegige0-20 twentyfivegige0-22 twentyfivegige0-24 s1 s1 s1 s1 s1 s1 s1 s1 s1 s1 s1 s1 s1 s1  hundredgige0-26 hundredgige0-26 hundredgige0-28 hundredgige0-28";
 }
