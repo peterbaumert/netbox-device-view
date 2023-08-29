@@ -5,10 +5,12 @@ from django.core.exceptions import ObjectDoesNotExist
 import re
 
 
-def process_interfaces(interfaces, ports_chassis, dev=1):
+def process_interfaces(interfaces, ports_chassis, dev):
     if interfaces is not None:
         for itf in interfaces:
-            regex = r"^(?P<type>([a-z]+))((?P<dev>[0-9]+)\/)?((?P<module>[0-9]+)\/)?((?P<port>[0-9]+))$"
+            if itf.type == "virtual" or itf.type == "lag":
+                continue
+            regex = r"^(?P<type>([a-zA-Z\-_]*))(\/|(?P<dev>[0-9]+).|\s)?((?P<module>[0-9]+).|\s)?((?P<port>[0-9]+))$"
             matches = re.search(regex, itf.name.lower())
             if matches:
                 itf.stylename = (
@@ -17,37 +19,24 @@ def process_interfaces(interfaces, ports_chassis, dev=1):
                     + "-"
                     + matches["port"]
                 )
-                sw = int(matches["dev"] or 999)
-                if (
-                    hasattr(itf, "mgmt_only")
-                    and itf.mgmt_only
-                    and itf.type != "virtual"
-                ) or hasattr(itf, "mgmt_only") == False:
-                    sw = dev
-                if sw not in ports_chassis and sw != 999:
-                    ports_chassis[sw] = []
-                if sw != 999:
-                    ports_chassis[sw].append(itf)
+            else:
+                itf.stylename = re.sub(r"[^.a-zA-Z\d]", "-", itf.name.lower())
+            if dev not in ports_chassis:
+                ports_chassis[dev] = []
+            ports_chassis[dev].append(itf)
     return ports_chassis
 
 
-def process_ports(ports, ports_chassis, where):
+def process_ports(ports, ports_chassis, dev):
     if ports is not None:
         for port in ports:
-            regex = r"^(?P<type>([A-Za-z]+))[\s]?((?P<port>[0-9]+))$"
-            matches = re.search(regex, port.name.lower())
-            port.is_port = True
-            if matches:
-                port.stylename = (matches["type"] or "") + "-" + matches["port"]
-            else:
-                port.stylename = re.sub(r"[^.a-zA-Z\d]", "-", port.name.lower())
-            sw = where
             if port.type == "virtual":
-                sw = 999
-            if sw not in ports_chassis and sw != 999:
-                ports_chassis[sw] = []
-            if sw != 999:
-                ports_chassis[sw].append(port)
+                continue
+            port.is_port = True
+            port.stylename = re.sub(r"[^.a-zA-Z\d]", "-", port.name.lower())
+            if dev not in ports_chassis:
+                ports_chassis[dev] = []
+            ports_chassis[dev].append(port)
     return ports_chassis
 
 
@@ -62,7 +51,7 @@ def prepare(obj):
                 device_type=obj.device_type
             ).grid_template_area
             modules[1] = obj.modules.all()
-            ports_chassis = process_interfaces(obj.interfaces.all(), ports_chassis)
+            ports_chassis = process_interfaces(obj.interfaces.all(), ports_chassis, 1)
             ports_chassis = process_ports(obj.frontports.all(), ports_chassis, "Front")
             ports_chassis = process_ports(obj.rearports.all(), ports_chassis, "Rear")
             ports_chassis = process_ports(

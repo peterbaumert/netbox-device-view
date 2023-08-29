@@ -43,7 +43,8 @@ For each Device Type you need to add a DeviceView.
 
 It is based on a CSS grid view with 32 columns and 2 rows.
 You need to specify the grid-template-areas. 
-- Interface positions will use the following format: {interfacename}{module}-{port}
+- Interface positions will use the following format: {interfacename}{module}-{port} 
+  or fallback to all lower case + [^.a-zA-Z\d] changed to "-"
 - leading "empties" can be specified as x
 - trailing "empties" can be specified as z
 - between "empties" can be named s{0-99}
