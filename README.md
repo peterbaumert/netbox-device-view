@@ -48,6 +48,7 @@ You need to specify the grid-template-areas.
 - leading "empties" can be specified as x
 - trailing "empties" can be specified as z
 - between "empties" can be named s{0-99}
+- numeric only ports have to be prefixed with "p" e.g. "p1"
 
 Example for Cisco C9300-24T with 8x 10G module ( more in [examples](https://github.com/peterbaumert/netbox-device-view/blob/main/examples/) folder )
 
