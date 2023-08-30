@@ -21,6 +21,8 @@ def process_interfaces(interfaces, ports_chassis, dev):
                 )
             else:
                 itf.stylename = re.sub(r"[^.a-zA-Z\d]", "-", itf.name.lower())
+            if itf.stylename.isdigit():
+                itf.stylename = f"p{itf.stylename}"
             if dev not in ports_chassis:
                 ports_chassis[dev] = []
             ports_chassis[dev].append(itf)
@@ -34,6 +36,8 @@ def process_ports(ports, ports_chassis, dev):
                 continue
             port.is_port = True
             port.stylename = re.sub(r"[^.a-zA-Z\d]", "-", port.name.lower())
+            if port.stylename.isdigit():
+                port.stylename = f"p{port.stylename}"
             if dev not in ports_chassis:
                 ports_chassis[dev] = []
             ports_chassis[dev].append(port)
