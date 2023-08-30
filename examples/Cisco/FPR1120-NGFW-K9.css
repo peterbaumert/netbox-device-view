@@ -1,0 +1,7 @@
+/* Ports are named "ETH 1", "ETH 2" and so on */
+ .deviceview.area { 
+     background-color: #d9d9d9;
+     grid-template-areas: 
+         "x x x x x x x x x x x x x ethernet-1 ethernet-3 ethernet-5 ethernet-7 s0 s0 s0 ethernet-9 ethernet-11"
+         "y y y y y y y y y y y y y ethernet-2 ethernet-4 ethernet-6 ethernet-8 s1 s1 s1 ethernet-10 ethernet-12" 
+ }
