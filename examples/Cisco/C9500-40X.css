@@ -1,0 +1,15 @@
+/* C9500-40X */
+.deviceview.area {
+background-color: #d9d9d9;
+            grid-template-areas:
+                        "x x x x tengigabitethernet0-1 tengigabitethernet0-3 tengigabitethernet0-5 tengigabitethernet0-7 tengigabitethernet0-9 tengigabitethernet0-11 tengigabitethernet0-13 tengigabitethernet0-15 s0 tengigabitethernet0-17 tengigabitethernet0-19 tengigabitethernet0-21 tengigabitethernet0-23 tengigabitethernet0-25 tengigabitethernet0-27 tengigabitethernet0-29 tengigabitethernet0-31 s2 tengigabitethernet0-33 tengigabitethernet0-35 tengigabitethernet0-37 tengigabitethernet0-39 s3 z z z z"
+                        "x x x x tengigabitethernet0-2 tengigabitethernet0-4 tengigabitethernet0-6 tengigabitethernet0-8 tengigabitethernet0-10 tengigabitethernet0-12 tengigabitethernet0-14 tengigabitethernet0-16 s0 tengigabitethernet0-18 tengigabitethernet0-20 tengigabitethernet0-22 tengigabitethernet0-24 tengigabitethernet0-26 tengigabitethernet0-28 tengigabitethernet0-30 tengigabitethernet0-32 s2 tengigabitethernet0-34 tengigabitethernet0-36 tengigabitethernet0-38 tengigabitethernet0-40 s3 z z z z";
+}
+
+/* C9500-40X with C9500-NM-8X */
+.deviceview.moduleC9500-NM-8X.area {
+background-color: #d9d9d9;
+            grid-template-areas:
+                        "x x x x tengigabitethernet0-1 tengigabitethernet0-3 tengigabitethernet0-5 tengigabitethernet0-7 tengigabitethernet0-9 tengigabitethernet0-11 s0 tengigabitethernet0-13 tengigabitethernet0-15 tengigabitethernet0-17 tengigabitethernet0-19 tengigabitethernet0-21 tengigabitethernet0-23 s1 tengigabitethernet0-25 tengigabitethernet0-27 tengigabitethernet0-29 tengigabitethernet0-31 s2 tengigabitethernet0-33 tengigabitethernet0-35 tengigabitethernet0-37 tengigabitethernet0-39 s3 tentengigabitethernet1-1 tentengigabitethernet1-3 tentengigabitethernet1-5 tentengigabitethernet1-7"
+                        "x x x x tengigabitethernet0-2 tengigabitethernet0-4 tengigabitethernet0-6 tengigabitethernet0-8 tengigabitethernet0-10 tengigabitethernet0-12 s0 tengigabitethernet0-14 tengigabitethernet0-16 tengigabitethernet0-18 tengigabitethernet0-20 tengigabitethernet0-22 tengigabitethernet0-24 s1 tengigabitethernet0-26 tengigabitethernet0-28 tengigabitethernet0-30 tengigabitethernet0-32 s2 tengigabitethernet0-34 tengigabitethernet0-36 tengigabitethernet0-38 tengigabitethernet0-40 s3 tentengigabitethernet1-2 tentengigabitethernet1-4 tentengigabitethernet1-6 tentengigabitethernet1-8";
+}
