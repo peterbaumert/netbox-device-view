@@ -7,6 +7,11 @@ deviceview_buttons = [
         title="Add",
         icon_class="mdi mdi-plus-thick",
         color=ButtonColorChoices.GREEN,
+    ),
+    PluginMenuButton(
+        link='plugins:netbox_device_view:deviceview_import',
+        title='Import',
+        icon_class='mdi mdi-upload'
     )
 ]
 
