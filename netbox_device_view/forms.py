@@ -12,8 +12,8 @@ class DeviceViewForm(NetBoxModelForm):
 class DeviceViewImportForm(NetBoxModelImportForm):
     device_type = CSVModelChoiceField(
         queryset=DeviceType.objects.all(),
-        to_field_name='name',
-        help_text=_('Device Name')
+        to_field_name='model',
+        help_text=_('Device Model Name')
     )
     class Meta:
         model = DeviceView
