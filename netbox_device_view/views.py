@@ -6,12 +6,9 @@ from .utils import prepare
 from django.http import HttpResponse
 import pprint
 
-from netbox.views.generic import (
-    BulkImportView
-)
-from netbox_device_view.forms import (
-    DeviceViewImportForm
-)
+from netbox.views.generic import BulkImportView
+from netbox_device_view.forms import DeviceViewImportForm
+
 
 class DeviceViewView(generic.ObjectView):
     queryset = models.DeviceView.objects
@@ -26,9 +23,11 @@ class DeviceViewEditView(generic.ObjectEditView):
     queryset = models.DeviceView.objects
     form = forms.DeviceViewForm
 
+
 class DeviceViewBulkImportView(BulkImportView):
     queryset = models.DeviceView.objects.all()
     model_form = DeviceViewImportForm
+
 
 class DeviceViewDeleteView(generic.ObjectDeleteView):
     queryset = models.DeviceView.objects
