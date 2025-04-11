@@ -59,12 +59,7 @@
 					{% endif %}
 					{% endfor %}
 				{% endif %}
-				"
-				style="grid-area: {{ int.stylename }};
-				{% if cable_colors == "on" and int.cable.color != "" %}
-				background-color: #{{ int.cable.color }}
-				{% endif %}
-				"
+				style="grid-area: {{ int.stylename }}{% if cable_colors == 'on' and int.cable.color != '' %}; background-color: #{{ int.cable.color }}{% endif %}"
 				data-bs-toggle="tooltip"
 				data-bs-html="true"
 				data-bs-custom-class="device-view-tooltip"
