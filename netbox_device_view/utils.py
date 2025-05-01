@@ -26,9 +26,10 @@ def process_interfaces(interfaces, ports_chassis, dev):
             itf.stylename = stylename
             # --- END Modified Problem 2 Logic ---
 
-            # --- Original Problem 3 Validation (kept for this comparison) ---
-            # This line is UNCHANGED from the original function
-            if itf.stylename.isdigit():
+            # --- BEGIN Modified Problem 3 Validation ---
+            # Check if the stylename exists and starts with a digit or a hyphen
+            # This replaces the original 'if itf.stylename.isdigit():' line
+            if itf.stylename and (itf.stylename[0].isdigit() or itf.stylename[0] == '-'):
                 itf.stylename = f"p{itf.stylename}"
             # --- End Original Problem 3 Validation ---
 
