@@ -31,7 +31,6 @@ def process_interfaces(interfaces, ports_chassis, dev):
             ):
                 itf.stylename = f"p{itf.stylename}"
 
-
             if dev not in ports_chassis:
                 ports_chassis[dev] = []
             ports_chassis[dev].append(itf)
