@@ -10,6 +10,7 @@ class DeviceViewForm(NetBoxModelForm):
         model = DeviceView
         fields = ("device_type", "grid_template_area")
 
+
 class DeviceViewImportForm(NetBoxModelImportForm):
     device_type = CSVModelChoiceField(
         queryset=DeviceType.objects.all(),
