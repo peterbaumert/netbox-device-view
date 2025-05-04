@@ -14,7 +14,7 @@ setup(
     install_requires=[],
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/cmcknz77/netbox-device-view",
+    url="https://github.com/peterbaumert/netbox-device-view",
     keywords=["netbox", "netbox-plugin"],
     classifiers=[
         "Framework :: Django",
