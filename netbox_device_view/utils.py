@@ -10,28 +10,27 @@ def process_interfaces(interfaces, ports_chassis, dev):
         for itf in interfaces:
             if itf.type == "virtual" or itf.type == "lag":
                 continue
-            # --- BEGIN Modified Problem 2 Logic ---
             # Convert to lowercase and replace common separators with hyphens
             # This replaces the original regex matching and if/else block
-            stylename = re.sub(r'[/\.\s]+', '-', itf.name.lower())
+            stylename = re.sub(r"[/\.\s]+", "-", itf.name.lower())
 
             # Clean up multiple hyphens and leading/trailing hyphens
-            stylename = re.sub(r'-+', '-', stylename).strip('-')
+            stylename = re.sub(r"-+", "-", stylename).strip("-")
 
             # If the name becomes empty after cleaning, use a fallback
             if not stylename:
-                 stylename = f"iface-{itf.pk}" # Use a unique fallback
+                stylename = f"iface-{itf.pk}"  # Use a unique fallback
 
             # Assign the generated stylename back to the object property
             itf.stylename = stylename
-            # --- END Modified Problem 2 Logic ---
 
-            # --- BEGIN Modified Problem 3 Validation ---
             # Check if the stylename exists and starts with a digit or a hyphen
             # This replaces the original 'if itf.stylename.isdigit():' line
-            if itf.stylename and (itf.stylename[0].isdigit() or itf.stylename[0] == '-'):
+            if itf.stylename and (
+                itf.stylename[0].isdigit() or itf.stylename[0] == "-"
+            ):
                 itf.stylename = f"p{itf.stylename}"
-            # --- End Original Problem 3 Validation ---
+
 
             if dev not in ports_chassis:
                 ports_chassis[dev] = []
@@ -65,7 +64,9 @@ def prepare(obj):
                 device_type=obj.device_type
             ).grid_template_area
             modules[1] = obj.modules.all()
-            ports_chassis = process_interfaces(obj.interfaces.all(), ports_chassis, obj.name)
+            ports_chassis = process_interfaces(
+                obj.interfaces.all(), ports_chassis, obj.name
+            )
             ports_chassis = process_ports(obj.frontports.all(), ports_chassis, "Front")
             ports_chassis = process_ports(obj.rearports.all(), ports_chassis, "Rear")
             ports_chassis = process_ports(
