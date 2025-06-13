@@ -1,11 +1,16 @@
 from netbox.plugins import PluginTemplateExtension
 from .utils import prepare
 from django.conf import settings
+from dcim.models import Device
 
 
 class Ports(PluginTemplateExtension):
     def page(self):
         obj = self.context["object"]
+
+        if not isinstance(obj, Device):
+            return ""
+
         request = self.context["request"]
         url = request.build_absolute_uri(obj.get_absolute_url())
 
@@ -31,7 +36,7 @@ class DevicePorts(Ports):
     model = "dcim.device"
 
     def full_width_page(self):
-        if settings.PLUGINS_CONFIG["netbox_device_view"]["show_on_device_tab"] == False:
+        if not settings.PLUGINS_CONFIG["netbox_device_view"]["show_on_device_tab"]:
             return ""
         return self.page()
 
