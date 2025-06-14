@@ -12,7 +12,7 @@ def process_interfaces(interfaces, ports_chassis, dev):
                 continue
             # Convert to lowercase and replace common separators with hyphens
             # This replaces the original regex matching and if/else block
-            stylename = re.sub(r"[/\.\s]+", "-", itf.name.lower())
+            stylename = re.sub(r"[/\.\s\+]+", "-", itf.name.lower())
 
             # Clean up multiple hyphens and leading/trailing hyphens
             stylename = re.sub(r"-+", "-", stylename).strip("-")
