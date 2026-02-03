@@ -10,25 +10,18 @@ def process_interfaces(interfaces, ports_chassis, dev):
         for itf in interfaces:
             if itf.type == "virtual" or itf.type == "lag":
                 continue
-            # Convert to lowercase and replace common separators with hyphens
-            # This replaces the original regex matching and if/else block
-            stylename = re.sub(r"[/\.\s\+]+", "-", itf.name.lower())
-
-            # Clean up multiple hyphens and leading/trailing hyphens
-            stylename = re.sub(r"-+", "-", stylename).strip("-")
-
-            # If the name becomes empty after cleaning, use a fallback
-            if not stylename:
-                stylename = f"iface-{itf.pk}"  # Use a unique fallback
-
-            # Assign the generated stylename back to the object property
-            itf.stylename = stylename
-
-            # Check if the stylename exists and starts with a digit or a hyphen
-            # This replaces the original 'if itf.stylename.isdigit():' line
-            if itf.stylename and (
-                itf.stylename[0].isdigit() or itf.stylename[0] == "-"
-            ):
+           regex = r"^(?P<type>([a-zA-Z\-_]*))(\/|(?P<dev>[0-9]+).|\s)?((?P<module>[0-9]+).|\s)?((?P<port>[0-9]+))$"
+            matches = re.search(regex, itf.name.lower())
+            if matches:
+                itf.stylename = (
+                    (matches["type"] or "")
+                    + (matches["module"] or "")
+                    + "-"
+                    + matches["port"]
+                )
+            else:
+                itf.stylename = re.sub(r"[^.a-zA-Z\d]", "-", itf.name.lower())
+            if itf.stylename.isdigit():
                 itf.stylename = f"p{itf.stylename}"
 
             if dev not in ports_chassis:
