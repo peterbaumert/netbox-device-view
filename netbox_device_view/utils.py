@@ -57,7 +57,7 @@ def prepare(obj):
             ).grid_template_area
             modules[1] = obj.modules.all()
             ports_chassis = process_interfaces(
-                obj.interfaces.all(), ports_chassis, 1
+                obj.interfaces.all(), ports_chassis, obj.name
             )
             ports_chassis = process_ports(obj.frontports.all(), ports_chassis, "Front")
             ports_chassis = process_ports(obj.rearports.all(), ports_chassis, "Rear")
