@@ -13,12 +13,15 @@ def process_interfaces(interfaces, ports_chassis, dev):
             regex = r"^(?P<type>([a-zA-Z\-_]*))(\/|(?P<dev>[0-9]+).|\s)?((?P<module>[0-9]+).|\s)?((?P<port>[0-9]+))$"
             matches = re.search(regex, itf.name.lower())
             if matches:
-                itf.stylename = (
-                    (matches["type"] or "")
-                    + (matches["module"] or "")
-                    + "-"
-                    + matches["port"]
-                )
+                if not matches["type"] and not matches["type"]:
+                    stylename = matches["port"]
+                else:
+                    stylename = (
+                        (matches["type"] or "")
+                        + (matches["module"] or "")
+                        + "-"
+                        + matches["port"]
+                    )
             else:
                 itf.stylename = re.sub(r"[^.a-zA-Z\d]", "-", itf.name.lower())
             if itf.stylename.isdigit():
