@@ -14,9 +14,9 @@ def process_interfaces(interfaces, ports_chassis, dev):
             matches = re.search(regex, itf.name.lower())
             if matches:
                 if not matches["type"] and not matches["type"]:
-                    stylename = matches["port"]
+                    itf.stylename = matches["port"]
                 else:
-                    stylename = (
+                    itf.stylename = (
                         (matches["type"] or "")
                         + (matches["module"] or "")
                         + "-"
