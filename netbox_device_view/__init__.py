@@ -12,7 +12,10 @@ class NetBoxDeviceViewConfig(PluginConfig):
     author = metadata.get("Author")
     base_url = "device_view"
     required_settings = []
-    default_settings = {"show_on_device_tab": False}
+    default_settings = {
+        "show_on_device_tab": False,
+        "device_tab_position": "bottom",  # "top" | "bottom"
+    }
 
 
 config = NetBoxDeviceViewConfig

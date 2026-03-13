@@ -1,5 +1,5 @@
 from netbox.plugins import PluginTemplateExtension
-from .utils import prepare
+from .utils import device_height_px, prepare
 from django.conf import settings
 from dcim.models import Device
 
@@ -11,12 +11,9 @@ class Ports(PluginTemplateExtension):
         if not isinstance(obj, Device):
             return ""
 
-        request = self.context["request"]
-        url = request.build_absolute_uri(obj.get_absolute_url())
+        dv, modules, ports_chassis, _ = prepare(obj)
 
-        dv, modules, ports_chassis = prepare(obj)
-
-        height = obj.device_type.u_height * 2 * 20 + obj.device_type.u_height * 2
+        height = device_height_px(obj.device_type)
 
         if dv is None or modules is None or ports_chassis is None:
             return ""
@@ -36,7 +33,22 @@ class DevicePorts(Ports):
     model = "dcim.device"
 
     def full_width_page(self):
-        if not settings.PLUGINS_CONFIG["netbox_device_view"]["show_on_device_tab"]:
+        cfg = settings.PLUGINS_CONFIG["netbox_device_view"]
+        if not cfg["show_on_device_tab"]:
+            return ""
+        if cfg.get("device_tab_position", "bottom") != "bottom":
+            return ""
+        return self.page()
+
+    def alerts(self):
+        cfg = settings.PLUGINS_CONFIG["netbox_device_view"]
+        if not cfg["show_on_device_tab"]:
+            return ""
+        if cfg.get("device_tab_position", "bottom") != "top":
+            return ""
+        # Only render on the main device tab — all other tabs have a different URL path
+        obj = self.context["object"]
+        if self.context["request"].path != obj.get_absolute_url():
             return ""
         return self.page()
 
