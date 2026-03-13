@@ -2,6 +2,8 @@
 
 ![Version](https://img.shields.io/pypi/v/netbox-device-view)
 ![Downloads](https://img.shields.io/pypi/dm/netbox-device-view)
+![CI](https://github.com/peterbaumert/netbox-device-view/actions/workflows/test.yml/badge.svg)
+![License](https://img.shields.io/github/license/peterbaumert/netbox-device-view)
 
 Renders a visual CSS grid representation of a device's physical ports and interfaces directly on the NetBox device detail page.
 
