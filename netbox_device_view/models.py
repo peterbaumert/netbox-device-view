@@ -1,16 +1,13 @@
-from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
 from netbox.models import NetBoxModel
 
 
 class DeviceView(NetBoxModel):
-    device_type = models.ForeignKey(
+    device_type = models.OneToOneField(
         to="dcim.DeviceType",
         on_delete=models.PROTECT,
         related_name="+",
-        blank=False,
-        null=False,
     )
 
     grid_template_area = models.TextField(blank=False)

@@ -1,6 +1,6 @@
 from netbox.api.viewsets import NetBoxModelViewSet
 
-from .. import filtersets, models
+from .. import models
 from .serializers import DeviceViewSerializer
 
 
