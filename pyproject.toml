@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "netbox-device-view"
+version = "0.1.15"
+description = "NetBox Device View plugin"
+readme = "README.md"
+authors = [{ name = "Peter Baumert" }]
+requires-python = ">=3.12"
+keywords = ["netbox", "netbox-plugin"]
+classifiers = [
+    "Framework :: Django",
+    "Programming Language :: Python :: 3",
+]
+
+[project.urls]
+Homepage = "https://github.com/peterbaumert/netbox-device-view"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "netbox.settings"
+pythonpath = ["/opt/netbox/netbox", "."]

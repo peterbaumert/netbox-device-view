@@ -1,0 +1,28 @@
+{
+  "name": "netbox-device-view",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "netbox",
+  "workspaceFolder": "/opt/code/netbox-device-view",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.black-formatter",
+        "charliermarsh.ruff"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/opt/netbox/venv/bin/python",
+        "[python]": {
+          "editor.defaultFormatter": "ms-python.black-formatter",
+          "editor.formatOnSave": true
+        },
+        "black-formatter.path": ["/opt/netbox/venv/bin/black"]
+      }
+    }
+  },
+  "forwardPorts": [8000],
+  "portsAttributes": {
+    "8000": { "label": "NetBox UI", "onAutoForward": "notify" }
+  },
+  "remoteUser": "root"
+}
