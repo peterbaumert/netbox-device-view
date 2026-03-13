@@ -54,3 +54,8 @@
 					black 10px
 				  );
 }
+
+.port-names-section {
+    clear: both;
+    margin-top: 5rem;
+}
