@@ -4,6 +4,7 @@
 
 | Plugin version | NetBox version | Python | Notes |
 |----------------|---------------|--------|-------|
+| 0.2.0          | 4.5.x         | 3.12+  | Tested |
 | 0.1.15         | 4.5.x         | 3.12+  | Tested |
 | 0.1.x          | 3.5+          | 3.10+  | Minimum supported (dcim migration 0172) |
 
