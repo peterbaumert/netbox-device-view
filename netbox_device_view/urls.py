@@ -3,6 +3,11 @@ from . import models, views
 from netbox.views.generic import ObjectChangeLogView
 
 urlpatterns = (
+    path(
+        "device-type-interfaces/",
+        views.DeviceTypeInterfacesView.as_view(),
+        name="devicetype_interfaces",
+    ),
     path("device-view/", views.DeviceViewListView.as_view(), name="deviceview_list"),
     path("device-view/add/", views.DeviceViewEditView.as_view(), name="deviceview_add"),
     path(

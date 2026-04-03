@@ -83,6 +83,7 @@ celerybeat-schedule
 
 # Environments
 .env
+.devcontainer/.env
 .venv
 env/
 venv/
@@ -103,5 +104,12 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+# ruff
+.ruff_cache/
+
 # MacOS FS
 .DS_Store
+
+# Claude Code
+CLAUDE.md
+.claude/

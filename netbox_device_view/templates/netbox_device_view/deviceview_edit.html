@@ -1,0 +1,114 @@
+{% extends 'generic/object_edit.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block head %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'netbox_device_view/css/device_view.css' %}" />
+{% endblock head %}
+
+{% block content %}
+{{ block.super }}
+
+<div class="row port-names-section" id="port-names-section" style="display:none;">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="mb-0">{% trans "Port &amp; Interface Stylenames" %}</h5>
+        <small class="text-muted" id="port-names-count"></small>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover table-sm mb-0" id="port-names-table">
+            <thead class="table-headings">
+              <tr>
+                <th>{% trans "Name" %}</th>
+                <th>{% trans "CSS Stylename" %}</th>
+                <th>{% trans "Kind" %}</th>
+                <th>{% trans "Type" %}</th>
+              </tr>
+            </thead>
+            <tbody id="port-names-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var ENDPOINT = "{% url 'plugins:netbox_device_view:devicetype_interfaces' %}";
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function renderTable(items) {
+    var section = document.getElementById("port-names-section");
+    var tbody = document.getElementById("port-names-tbody");
+    var count = document.getElementById("port-names-count");
+
+    tbody.innerHTML = "";
+
+    if (!items || items.length === 0) {
+      section.style.display = "none";
+      return;
+    }
+
+    items.forEach(function (item) {
+      var row = document.createElement("tr");
+      row.innerHTML =
+        "<td>" + escapeHtml(item.name) + "</td>" +
+        "<td><code>" + escapeHtml(item.stylename) + "</code></td>" +
+        "<td>" + escapeHtml(item.kind) + "</td>" +
+        "<td><small class=\"text-muted\">" + escapeHtml(item.type) + "</small></td>";
+      tbody.appendChild(row);
+    });
+
+    count.textContent = items.length + " {% trans "component(s)" %}";
+    section.style.display = "";
+  }
+
+  function loadPortNames(deviceTypeId) {
+    var section = document.getElementById("port-names-section");
+    var tbody = document.getElementById("port-names-tbody");
+
+    if (!deviceTypeId) {
+      section.style.display = "none";
+      tbody.innerHTML = "";
+      return;
+    }
+
+    fetch(ENDPOINT + "?device_type_id=" + encodeURIComponent(deviceTypeId), {
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+    })
+      .then(function (r) { return r.json(); })
+      .then(renderTable)
+      .catch(function () { section.style.display = "none"; });
+  }
+
+  function attachListener() {
+    var sel = document.getElementById("id_device_type");
+    if (!sel || sel.dataset.portNamesListening) return;
+    sel.dataset.portNamesListening = "1";
+
+    sel.addEventListener("change", function () {
+      loadPortNames(this.value);
+    });
+
+    if (sel.value) {
+      loadPortNames(sel.value);
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", attachListener);
+  document.addEventListener("htmx:afterSettle", attachListener);
+})();
+</script>
+{% endblock content %}

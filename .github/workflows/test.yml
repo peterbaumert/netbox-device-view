@@ -1,0 +1,77 @@
+name: Test
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container:
+      image: netboxcommunity/netbox:v4.5.4
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: netbox
+          POSTGRES_USER: netbox
+          POSTGRES_PASSWORD: netbox
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: valkey/valkey:9-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write NetBox configuration
+        run: |
+          mkdir -p /etc/netbox/config
+          cat > /etc/netbox/config/configuration.py << 'EOF'
+          ALLOWED_HOSTS = ['*']
+          SECRET_KEY = 'ci-test-secret-key-not-used-in-production-abcdefghijklmnopqrstuvwxyz0123456789'
+          DATABASES = {
+              'default': {
+                  'ENGINE': 'django.db.backends.postgresql',
+                  'NAME': 'netbox',
+                  'USER': 'netbox',
+                  'PASSWORD': 'netbox',
+                  'HOST': 'postgres',
+                  'PORT': '',
+              }
+          }
+          REDIS = {
+              'tasks': {
+                  'HOST': 'redis',
+                  'PORT': 6379,
+                  'DATABASE': 0,
+                  'SSL': False,
+              },
+              'caching': {
+                  'HOST': 'redis',
+                  'PORT': 6379,
+                  'DATABASE': 1,
+                  'SSL': False,
+              },
+          }
+          EOF
+          cat > /etc/netbox/config/extra.py << 'EOF'
+          PLUGINS = ['netbox_device_view']
+          PLUGINS_CONFIG = {'netbox_device_view': {'show_on_device_tab': False}}
+          EOF
+
+      - name: Install plugin and test dependencies
+        run: |
+          uv pip install --python /opt/netbox/venv/bin/python \
+            --no-cache pytest pytest-django -e .
+
+      - name: Run tests
+        run: /opt/netbox/venv/bin/pytest tests/ -v
