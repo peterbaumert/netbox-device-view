@@ -1,0 +1,38 @@
+version: 1
+
+meta:
+  description: "Cisco C8300-2N2S-4T2X"
+
+canvas:
+  columns: 6
+  rows: 2
+
+views:
+  front:
+    rows:
+      - elements:
+          - kind: blank
+            key: "x1"
+          - kind: console-port
+            key: "con-0"
+          - kind: spacer
+            key: "s1"
+          - kind: interface
+            key: "gigabitethernet0-0"
+          - kind: interface
+            key: "gigabitethernet0-2"
+          - kind: interface
+            key: "tengigabitethernet0-4"
+      - elements:
+          - kind: blank
+            key: "x2"
+          - kind: blank
+            key: "y"
+          - kind: spacer
+            key: "s1"
+          - kind: interface
+            key: "gigabitethernet0-1"
+          - kind: interface
+            key: "gigabitethernet0-3"
+          - kind: interface
+            key: "tengigabitethernet0-5"

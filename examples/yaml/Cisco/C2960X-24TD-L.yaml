@@ -1,0 +1,36 @@
+version: 1
+
+meta:
+  description: "Cisco Catalyst 2960X-24TD-L"
+
+canvas:
+  columns: 32
+  rows: 2
+
+views:
+  front:
+    rows:
+      - blank: 14
+      - group:
+          spacer: 1
+          sections:
+            - sequence:
+                kind: interface
+                prefix: "gigabitethernet0-"
+                start: 1
+                count: 12
+                pattern: odd
+            - sequence:
+                kind: interface
+                prefix: "gigabitethernet0-"
+                start: 13
+                count: 12
+                pattern: odd
+      # Uplinks: 2 x 10GE SFP+ — row 1 blank, row 2 ports
+      - spacer: 1
+      - elements:
+          - kind: blank
+            key: "y"
+          - kind: interface
+            key: "tengigabitethernet0-1"
+      - spacer: 1

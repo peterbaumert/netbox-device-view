@@ -1,0 +1,49 @@
+version: 1
+
+meta:
+  description: "Ubiquiti UniFi Switch Enterprise 24 PoE"
+
+canvas:
+  columns: 32
+  rows: 2
+
+views:
+  front:
+    rows:
+      - blank: 32   # top decorative row (empty)
+      - elements:
+          # Two blank cells on the left
+          - kind: blank
+            key: "y1"
+          - kind: blank
+            key: "y2"
+      - group:
+          spacer: 1
+          sections:
+            - sequence:
+                kind: port
+                prefix: "port-"
+                start: 1
+                count: 8
+                pattern: all
+            - sequence:
+                kind: port
+                prefix: "port-"
+                start: 9
+                count: 8
+                pattern: all
+            - sequence:
+                kind: port
+                prefix: "port-"
+                start: 17
+                count: 8
+                pattern: all
+      - spacer: 1
+      - elements:
+          - kind: interface
+            key: "sfp--25"
+          - kind: interface
+            key: "sfp--26"
+      - elements:
+          - kind: blank
+            key: "z"

@@ -1,0 +1,28 @@
+version: 1
+
+meta:
+  description: "Cisco Firepower FPR1120-NGFW-K9"
+  # Ports are named "ETH 1", "ETH 2" and so on
+  background: "#d9d9d9"
+
+canvas:
+  columns: 22
+  rows: 2
+
+views:
+  front:
+    rows:
+      - blank: 13
+      - sequence:
+          kind: interface
+          prefix: "ethernet-"
+          start: 1
+          count: 8
+          pattern: odd
+      - spacer: 3
+      - sequence:
+          kind: interface
+          prefix: "ethernet-"
+          start: 9
+          count: 4
+          pattern: odd

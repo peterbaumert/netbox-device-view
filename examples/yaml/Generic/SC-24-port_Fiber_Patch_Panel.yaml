@@ -1,0 +1,23 @@
+version: 1
+
+meta:
+  description: "Generic SC 24-port Fiber Patch Panel"
+  # Front and rear ports named "1", "2" ... (stylenames become p1, p2, ...)
+
+canvas:
+  columns: 24
+  rows: 1
+  cell_size: 0  # patch-panel: auto sizing
+
+views:
+  front:
+    rows:
+      - sequence:
+          kind: port
+          prefix: "p"
+          start: 1
+          count: 24
+          pattern: all
+
+  rear:
+    copy_from: front

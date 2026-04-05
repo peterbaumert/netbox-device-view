@@ -1,0 +1,71 @@
+version: 1
+
+meta:
+  description: "Generic 48-port UTP Patch Panel"
+  # Ports named "Port 1" ... "Port 48" front and rear
+
+canvas:
+  columns: 31  # 48 ports + 6 spacers, across 2 rows
+  rows: 2
+  cell_size: 0  # patch-panel: auto sizing
+
+views:
+  front:
+    rows:
+      - group:
+          spacer: 1
+          sections:
+            - sequence:
+                kind: port
+                prefix: "port-"
+                start: 1
+                count: 6
+                pattern: all
+            - sequence:
+                kind: port
+                prefix: "port-"
+                start: 7
+                count: 6
+                pattern: all
+            - sequence:
+                kind: port
+                prefix: "port-"
+                start: 13
+                count: 6
+                pattern: all
+            - sequence:
+                kind: port
+                prefix: "port-"
+                start: 19
+                count: 6
+                pattern: all
+      - group:
+          spacer: 1
+          sections:
+            - sequence:
+                kind: port
+                prefix: "port-"
+                start: 25
+                count: 6
+                pattern: all
+            - sequence:
+                kind: port
+                prefix: "port-"
+                start: 31
+                count: 6
+                pattern: all
+            - sequence:
+                kind: port
+                prefix: "port-"
+                start: 37
+                count: 6
+                pattern: all
+            - sequence:
+                kind: port
+                prefix: "port-"
+                start: 43
+                count: 6
+                pattern: all
+
+  rear:
+    copy_from: front
