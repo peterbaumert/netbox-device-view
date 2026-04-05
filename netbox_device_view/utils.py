@@ -10,6 +10,7 @@ from dcim.models import (
     RearPortTemplate,
 )
 
+from .layout import get_css_for_device_view
 from .models import DeviceView
 
 
@@ -164,7 +165,7 @@ def prepare(obj):
     try:
         if obj.virtual_chassis is None:
             device_view = DeviceView.objects.get(device_type=obj.device_type)
-            dv[1] = device_view.grid_template_area
+            dv[1] = get_css_for_device_view(device_view)
             modules[1] = obj.modules.all()
             ports_chassis = process_interfaces(
                 obj.interfaces.all(), ports_chassis, obj.name
@@ -179,12 +180,12 @@ def prepare(obj):
         else:
             for member in obj.virtual_chassis.members.all():
                 pos = member.vc_position
+                member_view = DeviceView.objects.get(device_type=member.device_type)
+                member_css = get_css_for_device_view(member_view)
                 dv[pos] = re.sub(
                     r"\.area\b",
                     f".area.d{pos}",
-                    DeviceView.objects.get(
-                        device_type=member.device_type
-                    ).grid_template_area,
+                    member_css,
                 )
                 modules[member.vc_position] = member.modules.all()
                 ports_chassis = process_interfaces(

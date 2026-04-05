@@ -10,6 +10,7 @@ class DeviceViewSerializer(NetBoxModelSerializer):
             "display",
             "device_type",
             "grid_template_area",
+            "yaml_layout",
             "tags",
             "custom_fields",
             "created",
