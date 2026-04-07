@@ -9,6 +9,12 @@
 	rel="stylesheet"
 	href="{% static 'netbox_device_view/css/device_view.css' %}"
 />
+{% if use_svg %}
+<link
+	rel="stylesheet"
+	href="{% static 'netbox_device_view/css/device_view_svg.css' %}"
+/>
+{% else %}
 <style>
 	{% autoescape off %}
 	{% for id, ddv in dv.items %}
@@ -22,11 +28,27 @@
 	}
 	{% endif %}
 </style>
+{% endif %}
 {% endblock %}
 {% block content %}
 <div class="card">
 	<div class="card-body htmx-container">
-		{% spaceless %} {% for device, interfaces in ports_chassis.items %} Device
+		{% spaceless %}
+		{% if use_svg %}
+		{# ── SVG rendering path ── #}
+		{# svg_panels is [(pos, svg_markup)] in ports_chassis order, pre-built in the view #}
+		{% for panel_pos, svg_markup in svg_panels %}
+		<p class="text-muted small mb-1">Device {{ panel_pos }}</p>
+		<div class="dv-svg-wrapper"
+			id="dv-svg-wrapper-{{ panel_pos }}"
+			data-device="{{ panel_pos }}">
+			{% autoescape off %}{{ svg_markup }}{% endautoescape %}
+		</div>
+		{% endfor %}
+
+		{% else %}
+		{# ── CSS Grid rendering path (unchanged) ── #}
+		{% for device, interfaces in ports_chassis.items %} Device
 		{{device}}
 		<div
 			class="deviceview area d{{device}}{% for sw, modules in modules.items %}{% if sw == device %}{% for module in modules %} module{{module.module_type.model}}{% endfor %}{% endif %}{% endfor %}"
@@ -75,9 +97,87 @@
 			</a>
 			{% endfor %}
 		</div>
-		{% endfor %} {% endspaceless %}
+		{% endfor %}
+		{% endif %}
+		{% endspaceless %}
 	</div>
 </div>
+
+{% if use_svg %}
+{# ── SVG interactivity script ── #}
+<script>
+(function () {
+  "use strict";
+
+  var portData = [
+    {% for device, interfaces in ports_chassis.items %}
+    {% for int in interfaces %}
+    {
+      stylename: "{{ int.stylename }}",
+      url: "{{ int.get_absolute_url }}trace/",
+      name: "{{ int.name|escapejs }}",
+      enabled: {% if int.enabled or int.is_port %}true{% else %}false{% endif %},
+      connected: {% if int.connected_endpoints|length > 0 or int.is_port and int.link_peers|length > 0 %}true{% else %}false{% endif %},
+      cableColor: "{% if cable_colors == 'on' and int.cable.color != '' %}{{ int.cable.color }}{% endif %}",
+      cableNoColor: {% if cable_colors == "on" and int.cable.color == "" or cable_colors == "on" and int.cable == None %}true{% else %}false{% endif %},
+      connectedEndpoints: [{% for ce in int.connected_endpoints %}"{{ ce.device }} | {{ ce.name }}"{% if not forloop.last %},{% endif %}{% endfor %}],
+      linkPeers: [{% for lp in int.link_peers %}"{% if lp.device %}{{ lp.device }} | {{ lp.name }}{% elif lp.circuit %}{{ lp }}{% endif %}"{% if not forloop.last %},{% endif %}{% endfor %}]
+    },
+    {% endfor %}
+    {% endfor %}
+  ];
+
+  function applyPortStatus() {
+    portData.forEach(function (p) {
+      var groups = document.querySelectorAll(".dv-port." + CSS.escape(p.stylename));
+      groups.forEach(function (g) {
+        var rect = g.querySelector(".dv-port-rect");
+
+        if (p.cableNoColor) {
+          g.classList.add("nocolor");
+        } else if (p.cableColor) {
+          if (rect) rect.setAttribute("fill", "#" + p.cableColor);
+        } else if (p.connected) {
+          g.classList.add("bg-success");
+        } else if (p.enabled) {
+          g.classList.add("bg-secondary");
+        } else {
+          g.classList.add("bg-danger");
+        }
+
+        g.setAttribute("role", "link");
+        g.style.cursor = "pointer";
+        g.addEventListener("click", function () { window.location.href = p.url; });
+        g.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" || e.key === " ") { window.location.href = p.url; }
+        });
+
+        var title = p.name;
+        var peers = p.connectedEndpoints.length > 0 ? p.connectedEndpoints : p.linkPeers;
+        if (peers.length > 0) { title += "<hr>" + peers.join("<br>"); }
+        g.setAttribute("data-bs-html", "true");
+        g.setAttribute("data-bs-custom-class", "device-view-tooltip");
+        g.setAttribute("title", title);
+
+        var svgTitle = g.querySelector("title");
+        if (svgTitle) svgTitle.textContent = p.name;
+
+        if (typeof Tooltip !== "undefined") {
+          var tip = new Tooltip(g, { trigger: "manual", html: true, container: "body" });
+          g.addEventListener("pointerenter", function () { tip.show(); });
+          g.addEventListener("pointerleave", function () { tip.hide(); });
+        }
+      });
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    applyPortStatus();
+  });
+})();
+</script>
+{% endif %}
+
 <div class="card">
 	<div class="card-header">
 		<h4>Options</h4>
