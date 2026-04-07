@@ -116,13 +116,13 @@ views:
                 prefix: "gigabitethernet0-"
                 start: 1
                 count: 12
-                pattern: odd
+                pattern: top-odd
             - sequence:
                 kind: interface
                 prefix: "gigabitethernet0-"
                 start: 13
                 count: 12
-                pattern: odd
+                pattern: top-odd
       - spacer: 4
 
 variants:
@@ -138,19 +138,19 @@ variants:
                 prefix: "gigabitethernet0-"
                 start: 1
                 count: 12
-                pattern: odd
+                pattern: top-odd
             - sequence:
                 kind: interface
                 prefix: "gigabitethernet0-"
                 start: 13
                 count: 12
-                pattern: odd
+                pattern: top-odd
             - sequence:
                 kind: interface
                 prefix: "tengigabitethernet1-"
                 start: 1
                 count: 8
-                pattern: odd
+                pattern: top-odd
 ```
 
 See [`docs/yaml-layout-schema.md`](docs/yaml-layout-schema.md) for the full schema reference and [`examples/yaml/`](examples/yaml/) for ready-made YAML files.

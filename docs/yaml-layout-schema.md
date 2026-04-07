@@ -58,16 +58,17 @@ Each entry in `rows:` is one of:
     start: 1              # first port number (default: 1)
     count: 24             # how many ports
     step: 1               # increment between port numbers (default: 1)
-    pattern: odd          # odd | even | all  (default: odd)
+    pattern: top-odd      # top-odd | top-even | all  (default: top-odd)
+    row: 1                # for pattern: all only — target row (default: 1)
 ```
 
 **Patterns:**
 
 | Pattern | Behaviour |
 |---------|-----------|
-| `odd`   | Odd-numbered ports → row 1; even-numbered ports → row 2 (standard 2U Cisco style) |
-| `even`  | Even-numbered ports → row 1; odd-numbered ports → row 2 (inverted) |
-| `all`   | All ports in a single row (patch-panel style) |
+| `top-odd`   | Odd-numbered ports → row 1 (top); even-numbered ports → row 2 (standard 2U Cisco style) |
+| `top-even`  | Even-numbered ports → row 1 (top); odd-numbered ports → row 2 (inverted) |
+| `all`   | All ports in a single row (patch-panel style); use `row: 2` to place them in the bottom row |
 
 #### `group` — multiple sequences separated by spacers
 

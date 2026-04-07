@@ -7,7 +7,6 @@ These are pure unit tests — no Django, no DB, no NetBox required.
 import pytest
 
 from netbox_device_view.layout.model import (
-    CanvasConfig,
     ElementKind,
     Face,
 )
@@ -16,7 +15,6 @@ from netbox_device_view.layout.parser import (
     parse,
     validate,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -217,7 +215,50 @@ class TestSequenceAll:
 
 
 # ---------------------------------------------------------------------------
-# Sequence expansion — pattern: odd (2-row Cisco style)
+# Sequence expansion — pattern: all with explicit row: 2
+# ---------------------------------------------------------------------------
+
+
+ALL_ROW2_YAML = """
+version: 1
+canvas:
+  columns: 6
+  rows: 2
+views:
+  front:
+    rows:
+      - sequence:
+          kind: interface
+          prefix: "uplink-"
+          start: 1
+          count: 4
+          pattern: all
+          row: 2
+"""
+
+
+class TestSequenceAllRow2:
+    def setup_method(self):
+        self.layout = _parse(ALL_ROW2_YAML)
+        self.elements = self.layout.front.elements
+
+    def test_count(self):
+        assert len(self.elements) == 4
+
+    def test_all_in_row_2(self):
+        assert all(e.row == 2 for e in self.elements)
+
+    def test_sequential_columns(self):
+        cols = sorted(e.col for e in self.elements)
+        assert cols == [1, 2, 3, 4]
+
+    def test_keys(self):
+        keys = [e.key for e in self.elements]
+        assert keys == ["uplink-1", "uplink-2", "uplink-3", "uplink-4"]
+
+
+# ---------------------------------------------------------------------------
+# Sequence expansion — pattern: top-odd (2-row Cisco style)
 # ---------------------------------------------------------------------------
 
 
@@ -234,7 +275,7 @@ views:
           prefix: "gi0-"
           start: 1
           count: 12
-          pattern: odd
+          pattern: top-odd
 """
 
 
@@ -259,7 +300,7 @@ class TestSequenceOdd:
 
 
 # ---------------------------------------------------------------------------
-# Sequence expansion — pattern: even
+# Sequence expansion — pattern: top-even
 # ---------------------------------------------------------------------------
 
 
@@ -276,7 +317,7 @@ views:
           prefix: "gi0-"
           start: 1
           count: 6
-          pattern: even
+          pattern: top-even
 """
 
 
@@ -286,7 +327,7 @@ class TestSequenceEven:
         self.elements = self.layout.front.elements
 
     def test_even_ports_in_row_1(self):
-        # "even" pattern: even-numbered ports go in row 1
+        # "even" pattern: top-even-numbered ports go in row 1
         even_els = [e for e in self.elements if int(e.key.split("-")[1]) % 2 == 0]
         assert all(e.row == 1 for e in even_els)
 
@@ -495,7 +536,7 @@ views:
           prefix: "gi0-"
           start: 1
           count: 6
-          pattern: odd
+          pattern: top-odd
 
 variants:
   NM-8X:
@@ -506,7 +547,7 @@ variants:
           prefix: "te1-"
           start: 1
           count: 8
-          pattern: odd
+          pattern: top-odd
 """
 
     def setup_method(self):

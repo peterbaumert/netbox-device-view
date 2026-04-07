@@ -19,14 +19,14 @@ views:
                 prefix: "gigabitethernet0-"
                 start: 1
                 count: 12
-                pattern: odd
+                pattern: top-odd
             - sequence:
                 kind: interface
                 prefix: "gigabitethernet0-"
                 start: 13
                 count: 12
-                pattern: odd
-      - spacer: 4  # trailing z padding
+                pattern: top-odd
+      - spacer: 4
 
 variants:
   C9300-NM-8X:
@@ -41,16 +41,16 @@ variants:
                 prefix: "gigabitethernet0-"
                 start: 1
                 count: 12
-                pattern: odd
+                pattern: top-odd
             - sequence:
                 kind: interface
                 prefix: "gigabitethernet0-"
                 start: 13
                 count: 12
-                pattern: odd
+                pattern: top-odd
             - sequence:
                 kind: interface
                 prefix: "tengigabitethernet1-"
                 start: 1
                 count: 8
-                pattern: odd
+                pattern: top-odd

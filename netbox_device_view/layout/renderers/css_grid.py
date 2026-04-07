@@ -25,9 +25,13 @@ Selector conventions (must match the Django templates):
 
 from __future__ import annotations
 
-from typing import Optional
 
-from ..model import CanvasConfig, ElementKind, Face, LayoutView, NormalizedLayout, PlacedElement
+from ..model import (
+    CanvasConfig,
+    LayoutView,
+    NormalizedLayout,
+    PlacedElement,
+)
 
 
 def render(layout: NormalizedLayout) -> str:

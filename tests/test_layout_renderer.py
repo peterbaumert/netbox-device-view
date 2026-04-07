@@ -4,11 +4,8 @@ Tests for netbox_device_view.layout.renderers.css_grid
 These are pure unit tests — no Django, no DB, no NetBox required.
 """
 
-import pytest
-
 from netbox_device_view.layout.parser import parse
 from netbox_device_view.layout.renderers.css_grid import render
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -20,7 +17,7 @@ def _render(yaml_text: str) -> str:
 
 
 def _lines(css: str) -> list[str]:
-    return [l.strip() for l in css.splitlines() if l.strip()]
+    return [line.strip() for line in css.splitlines() if line.strip()]
 
 
 # ---------------------------------------------------------------------------
@@ -86,7 +83,7 @@ views:
           prefix: "gi0-"
           start: 1
           count: 4
-          pattern: odd
+          pattern: top-odd
 variants:
   NM-4X:
     match: module
@@ -96,7 +93,7 @@ variants:
           prefix: "te1-"
           start: 1
           count: 4
-          pattern: odd
+          pattern: top-odd
 """
         css = _render(yaml)
         assert ".deviceview.moduleNM-4X.area {" in css
@@ -130,7 +127,7 @@ views:
         assert "p3" in css
         assert "p4" in css
 
-    def test_two_row_odd_pattern_row_structure(self):
+    def test_two_row_top_odd_pattern_row_structure(self):
         yaml = """
 version: 1
 canvas:
@@ -144,7 +141,7 @@ views:
           prefix: "gi-"
           start: 1
           count: 4
-          pattern: odd
+          pattern: top-odd
 """
         css = _render(yaml)
         # Extract the two grid-template-areas rows
@@ -156,7 +153,7 @@ views:
                 in_areas = True
                 continue
             if in_areas and stripped.startswith('"'):
-                area_rows.append(stripped.strip('"').strip(';').strip())
+                area_rows.append(stripped.strip('"').strip(";").strip())
             elif in_areas and stripped == "}":
                 break
 
@@ -190,9 +187,11 @@ views:
         # A spacer key (s-something) should appear in the areas
         assert "grid-template-areas" in css
         # At least one cell that is not a port key
-        lines_with_areas = [l for l in css.splitlines() if l.strip().startswith('"')]
+        lines_with_areas = [
+            line for line in css.splitlines() if line.strip().startswith('"')
+        ]
         row_content = " ".join(lines_with_areas)
-        cells = row_content.replace('"', '').split()
+        cells = row_content.replace('"', "").split()
         non_port_cells = [c for c in cells if not c.startswith("p")]
         assert len(non_port_cells) > 0
 
@@ -217,8 +216,10 @@ views:
         assert "p1" in css
         assert "p2" in css
         # Blanks fill the first 2 columns — the area row should have 4 cells
-        lines_with_areas = [l for l in css.splitlines() if l.strip().startswith('"')]
-        cells = lines_with_areas[0].strip().strip('"').strip(';').split()
+        lines_with_areas = [
+            line for line in css.splitlines() if line.strip().startswith('"')
+        ]
+        cells = lines_with_areas[0].strip().strip('"').strip(";").split()
         assert len(cells) == 4
 
 
@@ -312,7 +313,7 @@ views:
           prefix: "gi-"
           start: 1
           count: 4
-          pattern: odd
+          pattern: top-odd
 """
         css = _render(yaml)
         assert "grid-auto-rows" not in css
@@ -344,7 +345,7 @@ views:
           prefix: "gi0-"
           start: 1
           count: 4
-          pattern: odd
+          pattern: top-odd
 variants:
   NM-4X:
     match: module
@@ -354,13 +355,13 @@ variants:
           prefix: "gi0-"
           start: 1
           count: 4
-          pattern: odd
+          pattern: top-odd
       - sequence:
           kind: interface
           prefix: "te1-"
           start: 1
           count: 4
-          pattern: odd
+          pattern: top-odd
 """
         css = _render(yaml)
         # Find the variant block
@@ -383,7 +384,7 @@ views:
           prefix: "gi0-"
           start: 1
           count: 4
-          pattern: odd
+          pattern: top-odd
 variants:
   NM-4X:
     match: module
@@ -393,13 +394,13 @@ variants:
           prefix: "gi0-"
           start: 1
           count: 4
-          pattern: odd
+          pattern: top-odd
       - sequence:
           kind: interface
           prefix: "te1-"
           start: 1
           count: 4
-          pattern: odd
+          pattern: top-odd
 """
         css = _render(yaml)
         # Base block ends before variant block
@@ -435,13 +436,13 @@ views:
                 prefix: "gigabitethernet0-"
                 start: 1
                 count: 12
-                pattern: odd
+                pattern: top-odd
             - sequence:
                 kind: interface
                 prefix: "gigabitethernet0-"
                 start: 13
                 count: 12
-                pattern: odd
+                pattern: top-odd
       - spacer: 4
 variants:
   C9300-NM-8X:
@@ -456,19 +457,19 @@ variants:
                 prefix: "gigabitethernet0-"
                 start: 1
                 count: 12
-                pattern: odd
+                pattern: top-odd
             - sequence:
                 kind: interface
                 prefix: "gigabitethernet0-"
                 start: 13
                 count: 12
-                pattern: odd
+                pattern: top-odd
             - sequence:
                 kind: interface
                 prefix: "tengigabitethernet1-"
                 start: 1
                 count: 8
-                pattern: odd
+                pattern: top-odd
 """
 
     def setup_method(self):
@@ -507,7 +508,7 @@ variants:
                 in_areas = True
                 continue
             if in_base and in_areas and s.startswith('"'):
-                cells = s.strip('"').rstrip(';').strip()
+                cells = s.strip('"').rstrip(";").strip()
                 area_rows.append(cells.split())
         assert len(area_rows) == 2
         assert len(area_rows[0]) == 32

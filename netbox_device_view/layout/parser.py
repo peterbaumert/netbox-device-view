@@ -25,7 +25,7 @@ views:
           prefix: "gigabitethernet0-"
           start: 1
           count: 12
-          pattern: odd     # "odd" | "even" | "all" (default)
+          pattern: top-odd  # "top-odd" | "top-even" | "all" (default: top-odd)
       - spacer: 1          # shorthand: insert N spacer columns
       - blank: 4           # shorthand: insert N blank (x) columns
 
@@ -54,9 +54,10 @@ Sequence helper
 A sequence expands into multiple port elements.  The ``pattern`` key controls
 which ports go in which row when the canvas has 2 rows:
 
-  pattern: odd      → ports 1, 3, 5, … in row 1; 2, 4, 6, … in row 2
-  pattern: even     → ports 2, 4, 6, … in row 1; 1, 3, 5, … in row 2
+  pattern: top-odd  → ports 1, 3, 5, … in row 1; 2, 4, 6, … in row 2
+  pattern: top-even → ports 2, 4, 6, … in row 1; 1, 3, 5, … in row 2
   pattern: all      → all ports in a single row (patch panel style)
+                      optional ``row: 2`` places them in the bottom row instead of row 1
 
 Group helper
 ------------
@@ -80,7 +81,6 @@ A view can copy another view's row definitions and add overrides:
 
 from __future__ import annotations
 
-import re
 from typing import Any, Optional
 
 import yaml
@@ -304,7 +304,9 @@ def _compile_flat_elements(
     result: list[PlacedElement] = []
     for i, raw in enumerate(elements):
         if not isinstance(raw, dict):
-            raise LayoutParseError(f"Element #{i} must be a mapping, got {type(raw).__name__}.")
+            raise LayoutParseError(
+                f"Element #{i} must be a mapping, got {type(raw).__name__}."
+            )
         result.extend(_expand_element(raw, canvas, variant_name))
     return result
 
@@ -326,8 +328,8 @@ def _compile_rows_definition(
 
     Row number is determined by the ``pattern`` of each sequence:
       - "all"  → fills a single row (auto-incremented)
-      - "odd"  → odd-numbered ports go in row 1
-      - "even" → even-numbered ports go in row 2 (row 1 gets the evens)
+      - "top-odd"  → odd-numbered ports go in row 1
+      - "top-even" → even-numbered ports go in row 1 (row 2 gets the odds)
     """
     result: list[PlacedElement] = []
 
@@ -337,7 +339,9 @@ def _compile_rows_definition(
 
     for entry in rows:
         if not isinstance(entry, dict):
-            raise LayoutParseError(f"Row entry must be a mapping, got {type(entry).__name__}.")
+            raise LayoutParseError(
+                f"Row entry must be a mapping, got {type(entry).__name__}."
+            )
 
         if "elements" in entry:
             elements, row_cursors = _compile_explicit_row(
@@ -394,17 +398,27 @@ def _compile_explicit_row(
     for raw in elements:
         if isinstance(raw, str):
             # shorthand: just a key name, infer kind
-            kind = ElementKind.SPACER if raw.startswith("s") and raw[1:].isdigit() else ElementKind.BLANK if raw in ("x", "y") else ElementKind.PORT
-            result.append(PlacedElement(
-                kind=kind, key=raw, row=current_row, col=col, variant=variant_name
-            ))
+            kind = (
+                ElementKind.SPACER
+                if raw.startswith("s") and raw[1:].isdigit()
+                else ElementKind.BLANK if raw in ("x", "y") else ElementKind.PORT
+            )
+            result.append(
+                PlacedElement(
+                    kind=kind, key=raw, row=current_row, col=col, variant=variant_name
+                )
+            )
             col += 1
         elif isinstance(raw, dict):
-            expanded = _expand_element(raw, canvas, variant_name, default_row=current_row, default_col=col)
+            expanded = _expand_element(
+                raw, canvas, variant_name, default_row=current_row, default_col=col
+            )
             result.extend(expanded)
             col += sum(el.col_span for el in expanded)
         else:
-            raise LayoutParseError(f"Element must be a string key or mapping, got {type(raw).__name__}.")
+            raise LayoutParseError(
+                f"Element must be a string key or mapping, got {type(raw).__name__}."
+            )
     row_cursors[current_row] = col
     return result, row_cursors
 
@@ -423,8 +437,9 @@ def _expand_sequence(
       prefix: "gigabitethernet0-"
       start: 1             # first port number (default: 1)
       count: 24            # how many ports
-      pattern: odd         # "odd" | "even" | "all"
+      pattern: top-odd  # "top-odd" | "top-even" | "all"
       step: 1              # increment between ports (default: 1)
+      row: 1               # for pattern: all only — target row (default: 1)
     """
     if not isinstance(seq, dict):
         raise LayoutParseError("'sequence' must be a mapping.")
@@ -438,7 +453,10 @@ def _expand_sequence(
     start = int(seq.get("start", 1))
     count = int(seq.get("count", 1))
     step = int(seq.get("step", 1))
-    pattern = seq.get("pattern", "odd")
+    pattern = seq.get("pattern", "top-odd")
+    explicit_row = seq.get("row", None)
+    if explicit_row is not None:
+        explicit_row = int(explicit_row)
 
     # Generate port numbers
     port_numbers = [start + i * step for i in range(count)]
@@ -447,20 +465,29 @@ def _expand_sequence(
     row_cursors = dict(row_cursors)  # copy
 
     if pattern == "all":
-        # All ports in a single row (patch-panel style)
-        row = _single_active_row(row_cursors, canvas)
+        # All ports in a single row (patch-panel style).
+        # The target row defaults to 1 but can be overridden with `row:`.
+        row = (
+            explicit_row
+            if explicit_row is not None
+            else _single_active_row(row_cursors, canvas)
+        )
         col = row_cursors.get(row, 1)
         for n in port_numbers:
             key = f"{prefix}{n}"
-            result.append(PlacedElement(kind=kind, key=key, row=row, col=col, variant=variant_name))
+            result.append(
+                PlacedElement(
+                    kind=kind, key=key, row=row, col=col, variant=variant_name
+                )
+            )
             col += 1
         row_cursors[row] = col
 
-    elif pattern in ("odd", "even"):
+    elif pattern in ("top-odd", "top-even"):
         # Two-row layout: odd ports in row 1, even ports in row 2
-        # (or swapped for "even" pattern — useful when even ports are physically on top)
+        # (or swapped for "top-even" pattern — useful when even ports are physically on top)
         row1, row2 = (1, 2) if canvas.rows >= 2 else (1, 1)
-        if pattern == "even":
+        if pattern == "top-even":
             row1, row2 = row2, row1
 
         # Find the starting column (max of the two row cursors to keep alignment)
@@ -470,10 +497,18 @@ def _expand_sequence(
         for n in port_numbers:
             key = f"{prefix}{n}"
             if n % 2 == 1:  # odd
-                result.append(PlacedElement(kind=kind, key=key, row=row1, col=col1, variant=variant_name))
+                result.append(
+                    PlacedElement(
+                        kind=kind, key=key, row=row1, col=col1, variant=variant_name
+                    )
+                )
                 col1 += 1
             else:  # even
-                result.append(PlacedElement(kind=kind, key=key, row=row2, col=col2, variant=variant_name))
+                result.append(
+                    PlacedElement(
+                        kind=kind, key=key, row=row2, col=col2, variant=variant_name
+                    )
+                )
                 col2 += 1
 
         # Both cursors advance to the same column
@@ -482,7 +517,9 @@ def _expand_sequence(
         row_cursors[row2] = final_col
 
     else:
-        raise LayoutParseError(f"Unknown sequence pattern: {pattern!r}. Use 'odd', 'even', or 'all'.")
+        raise LayoutParseError(
+            f"Unknown sequence pattern: {pattern!r}. Use 'top-odd', 'top-even', or 'all'."
+        )
 
     return result, row_cursors
 
@@ -513,7 +550,12 @@ def _expand_group(
         if i > 0:
             # Insert spacer between sections
             spacer_els, row_cursors = _insert_filler(
-                ElementKind.SPACER, spacer_width, row_cursors, canvas, variant_name, prefix="s"
+                ElementKind.SPACER,
+                spacer_width,
+                row_cursors,
+                canvas,
+                variant_name,
+                prefix="s",
             )
             result.extend(spacer_els)
 
@@ -521,18 +563,26 @@ def _expand_group(
             raise LayoutParseError("Group section must be a mapping.")
 
         if "sequence" in section:
-            els, row_cursors = _expand_sequence(section["sequence"], row_cursors, canvas, variant_name)
+            els, row_cursors = _expand_sequence(
+                section["sequence"], row_cursors, canvas, variant_name
+            )
             result.extend(els)
         elif "elements" in section:
             row = _single_active_row(row_cursors, canvas)
-            els, row_cursors = _compile_explicit_row(section["elements"], row_cursors, row, canvas, variant_name)
+            els, row_cursors = _compile_explicit_row(
+                section["elements"], row_cursors, row, canvas, variant_name
+            )
             result.extend(els)
         elif "blank" in section:
             n = int(section["blank"])
-            els, row_cursors = _insert_filler(ElementKind.BLANK, n, row_cursors, canvas, variant_name, prefix="x")
+            els, row_cursors = _insert_filler(
+                ElementKind.BLANK, n, row_cursors, canvas, variant_name, prefix="x"
+            )
             result.extend(els)
         else:
-            raise LayoutParseError(f"Unknown group section keys: {list(section.keys())}.")
+            raise LayoutParseError(
+                f"Unknown group section keys: {list(section.keys())}."
+            )
 
     return result, row_cursors
 
@@ -556,19 +606,21 @@ def _insert_filler(
         key = f"{prefix}{col}"
         if canvas.rows >= 2:
             # One element spanning all rows
-            result.append(PlacedElement(
-                kind=kind,
-                key=key,
-                row=1,
-                col=col,
-                row_span=canvas.rows,
-                col_span=1,
-                variant=variant_name,
-            ))
+            result.append(
+                PlacedElement(
+                    kind=kind,
+                    key=key,
+                    row=1,
+                    col=col,
+                    row_span=canvas.rows,
+                    col_span=1,
+                    variant=variant_name,
+                )
+            )
         else:
-            result.append(PlacedElement(
-                kind=kind, key=key, row=1, col=col, variant=variant_name
-            ))
+            result.append(
+                PlacedElement(kind=kind, key=key, row=1, col=col, variant=variant_name)
+            )
 
     # Advance all row cursors
     new_col = start_col + count
@@ -614,18 +666,20 @@ def _expand_element(
     face_map = {"front": Face.FRONT, "rear": Face.REAR, "both": Face.BOTH}
     face = face_map.get(face_str, Face.BOTH)
 
-    return [PlacedElement(
-        kind=kind,
-        key=key,
-        face=face,
-        row=row,
-        col=col,
-        row_span=row_span,
-        col_span=col_span,
-        label=label,
-        css_classes=list(css_classes),
-        variant=variant_name,
-    )]
+    return [
+        PlacedElement(
+            kind=kind,
+            key=key,
+            face=face,
+            row=row,
+            col=col,
+            row_span=row_span,
+            col_span=col_span,
+            label=label,
+            css_classes=list(css_classes),
+            variant=variant_name,
+        )
+    ]
 
 
 def _single_active_row(row_cursors: dict[int, int], canvas: CanvasConfig) -> int:

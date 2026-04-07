@@ -74,7 +74,11 @@ class PlacedElement:
     @property
     def is_port(self) -> bool:
         """True for elements that correspond to a real NetBox port/interface."""
-        return self.kind not in (ElementKind.SPACER, ElementKind.BLANK, ElementKind.LABEL)
+        return self.kind not in (
+            ElementKind.SPACER,
+            ElementKind.BLANK,
+            ElementKind.LABEL,
+        )
 
 
 @dataclass
@@ -109,7 +113,9 @@ class LayoutView:
     # variant_name → list[PlacedElement] overrides/additions
     variants: dict[str, list[PlacedElement]] = field(default_factory=dict)
 
-    def elements_for_variant(self, variant_name: Optional[str] = None) -> list[PlacedElement]:
+    def elements_for_variant(
+        self, variant_name: Optional[str] = None
+    ) -> list[PlacedElement]:
         """
         Return the full element list for a given module variant.
 
