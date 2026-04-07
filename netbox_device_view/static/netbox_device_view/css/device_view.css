@@ -45,6 +45,11 @@
 	max-width: 300px;
 }
 
+.device-view-tooltip hr {
+	margin: 3px 0;
+	opacity: 0.4;
+}
+
 .device-view-port.nocolor {
 	background: repeating-linear-gradient(
 					-45deg,
