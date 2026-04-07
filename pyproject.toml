@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "netbox-device-view"
-version = "0.3.0b1"
+version = "0.4.0"
 description = "NetBox Device View plugin"
 readme = "README.md"
 authors = [{ name = "Peter Baumert" }]
