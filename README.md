@@ -5,7 +5,7 @@
 ![CI](https://github.com/peterbaumert/netbox-device-view/actions/workflows/test.yml/badge.svg)
 ![License](https://img.shields.io/github/license/peterbaumert/netbox-device-view)
 
-Renders a visual CSS grid representation of a device's physical ports and interfaces directly on the NetBox device detail page.
+Renders a visual CSS grid representation of a device's physical ports and interfaces directly on the NetBox device detail page. An SVG renderer is also available for YAML-based layouts.
 
 ![example](https://github.com/peterbaumert/netbox-device-view/blob/main/docs/example_view.png?raw=true)
 
@@ -88,6 +88,17 @@ The plugin derives a `stylename` for each interface and port:
 
 A DeviceView supports two layout formats. **YAML is preferred** — it is easier to write, validate, and maintain. Legacy CSS is still fully supported for backward compatibility.
 
+### Render modes
+
+A DeviceView also has a **Render Mode** field:
+
+| Mode | Description |
+|------|-------------|
+| `css` (default) | CSS Grid renderer — works with both YAML and legacy CSS layouts |
+| `svg` | SVG renderer — requires a YAML layout; produces a scalable `<svg>` element |
+
+SVG mode produces the same port positions as CSS mode (using `canvas.cell_size` for coordinates) and supports front/rear faces, module variants, hover tooltips, and click targets. Virtual Chassis devices always fall back to CSS mode.
+
 ### YAML layout (recommended)
 
 Fill the **YAML Layout** field with a YAML document describing the device layout. The plugin compiles it to CSS at render time.
@@ -113,13 +124,13 @@ views:
           sections:
             - sequence:
                 kind: interface
-                prefix: "gigabitethernet0-"
+                prefix: "gigabitethernet1-"
                 start: 1
                 count: 12
                 pattern: top-odd
             - sequence:
                 kind: interface
-                prefix: "gigabitethernet0-"
+                prefix: "gigabitethernet1-"
                 start: 13
                 count: 12
                 pattern: top-odd
@@ -135,13 +146,13 @@ variants:
           sections:
             - sequence:
                 kind: interface
-                prefix: "gigabitethernet0-"
+                prefix: "gigabitethernet1-"
                 start: 1
                 count: 12
                 pattern: top-odd
             - sequence:
                 kind: interface
-                prefix: "gigabitethernet0-"
+                prefix: "gigabitethernet1-"
                 start: 13
                 count: 12
                 pattern: top-odd
@@ -153,7 +164,7 @@ variants:
                 pattern: top-odd
 ```
 
-See [`docs/yaml-layout-schema.md`](docs/yaml-layout-schema.md) for the full schema reference and [`examples/yaml/`](examples/yaml/) for ready-made YAML files.
+See [`docs/yaml-layout-schema.md`](docs/yaml-layout-schema.md)
 
 ### CSS layout (legacy)
 
@@ -173,6 +184,18 @@ Placeholder names: `x` — leading blank, `z` — trailing blank, `s0`–`s99` �
 See [`examples/`](examples/) for ready-made CSS files.
 
 > **Precedence:** if a DeviceView has a YAML layout, it is used and the CSS field is ignored.
+
+### Migrating from CSS to YAML
+
+> [!IMPORTANT]
+> If you have existing DeviceViews with CSS `grid_template_area` layouts and want to switch to the SVG renderer, run the bundled management command to convert them automatically:
+>
+> ```bash
+> cd /opt/netbox/netbox
+> python manage.py css_to_yaml
+> ```
+>
+> This converts every DeviceView that has a CSS layout but no YAML layout, writes the result into the **YAML Layout** field, and leaves the original CSS untouched (so you can roll back by clearing the YAML field). After running it, set **Render Mode → SVG** on the DeviceViews you want to upgrade.
 
 ### Module variants
 
@@ -195,3 +218,9 @@ Add a `.deviceview.module{ModelName}.area` rule to your CSS that includes the ne
 
 **Virtual chassis ports missing**
 Ensure your CSS uses `.area.d{vc_position}` scoped selectors. Each VC member needs its own rule.
+
+**SVG mode shows nothing / falls back to CSS**
+SVG mode requires a YAML layout. If the DeviceView has no YAML layout, or the device is part of a Virtual Chassis, it silently falls back to CSS rendering.
+
+**Port status colours not showing in SVG mode**
+Status classes (`bg-success`, `bg-secondary`, `bg-danger`) are applied by JavaScript using the `data-stylename` attribute. Ensure the static file `netbox_device_view/css/device_view_svg.css` is collected (`python manage.py collectstatic`).

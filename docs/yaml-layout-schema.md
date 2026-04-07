@@ -239,6 +239,74 @@ The YAML renderer produces CSS equivalent to the legacy hand-written format:
 
 ---
 
+## SVG renderer
+
+When a DeviceView has `render_mode` set to `svg`, the plugin uses the same `NormalizedLayout` model to emit an `<svg>` element instead of CSS. The `cell_size` canvas field controls the pixel size of each port cell (default: 20 px if set to 0).
+
+### Coordinate formula
+
+```
+x = PADDING + (col - 1) * (cell_size + GAP)
+y = PADDING + (row - 1) * (cell_size + GAP)
+```
+
+Constants: `PADDING = 6 px`, `GAP = 2 px`, `CORNER_RADIUS = 3 px`, `FONT_SIZE = 7 px`.
+
+### SVG output structure
+
+```xml
+<svg class="dv-svg" viewBox="0 0 W H" xmlns="...">
+  <!-- background -->
+  <rect class="dv-bg" .../>
+
+  <!-- base layer (always present; wrapped in <g class="dv-base"> only when variants exist) -->
+  <g class="dv-port dv-kind-interface <stylename>" data-stylename="<stylename>">
+    <rect class="dv-port-rect" .../>
+    <text class="dv-port-label" ...>Gi0/1</text>
+    <title>gigabitethernet0-1</title>
+  </g>
+  ...
+
+  <!-- variant layers (hidden by default; activated by JS) -->
+  <g class="dv-variant dv-variant-C9300-NM-8X" style="display:none">
+    <g class="dv-port dv-kind-interface tengigabitethernet1-1" data-stylename="tengigabitethernet1-1">
+      ...
+    </g>
+  </g>
+</svg>
+```
+
+### Front/rear faces
+
+Patch panels with separate front and rear views produce **two `<svg>` elements**, each with a `data-face` attribute and a `dv-face-front` / `dv-face-rear` class. The JS in the template shows/hides them based on the active tab.
+
+### CSS classes on port groups
+
+| Class | Meaning |
+|-------|---------|
+| `dv-port` | Any clickable port element |
+| `dv-kind-{kind}` | Element kind (`interface`, `port`, `console-port`, etc.) |
+| `{stylename}` | Derived CSS name — same as grid-area name in CSS mode |
+| `dv-spacer` | Spacer element |
+| `dv-blank` | Blank decorative element |
+| `dv-label` | Text label element |
+| `dv-base` | Wrapper `<g>` for base elements when variants are present |
+| `dv-variant` | Wrapper `<g>` for a module variant layer |
+| `dv-variant-{ModelName}` | Identifies which variant this layer belongs to |
+| `dv-face-front` / `dv-face-rear` | Applied to the top-level `<svg>` for patch panels |
+
+### Interactivity
+
+Status coloring, hover tooltips (Bootstrap), and variant switching are handled by JavaScript injected in the template — the SVG renderer itself emits only structural markup. The `data-stylename` attribute on port `<g>` elements is the hook used by JS to apply status classes (e.g. `bg-success`, `bg-secondary`, `bg-danger`).
+
+### Limitations
+
+- **Virtual Chassis** devices fall back to CSS rendering automatically — SVG mode for VC is not yet supported.
+- SVG mode requires a YAML layout; if no YAML is present the DeviceView silently falls back to CSS.
+- `cell_size: 0` (patch-panel auto-sizing) uses `DEFAULT_CELL = 20 px` in SVG mode since CSS `auto` sizing has no SVG equivalent.
+
+---
+
 ## Examples
 
 Ready-made YAML layouts are in [`examples/yaml/`](../examples/yaml/):

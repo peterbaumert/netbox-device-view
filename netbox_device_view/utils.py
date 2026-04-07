@@ -10,7 +10,11 @@ from dcim.models import (
     RearPortTemplate,
 )
 
-from .layout import get_css_for_device_view
+from .layout import (
+    get_css_for_device_view,
+    get_svg_for_device_view,
+    parse as parse_layout,
+)
 from .models import DeviceView
 
 
@@ -107,6 +111,22 @@ def device_height_px(device_type):
     return device_type.u_height * 2 * 20 + device_type.u_height * 2
 
 
+def _detect_variant(member_modules, device_view) -> str | None:
+    """Return the first installed module model name that matches a known variant,
+    or None if no variant applies."""
+    if not device_view.has_yaml_layout:
+        return None
+    layout = parse_layout(device_view.yaml_layout)
+    view = layout.front or layout.rear
+    if view is None or not view.variants:
+        return None
+    installed_models = {m.module_type.model for m in member_modules}
+    for variant_name in view.variants:
+        if variant_name in installed_models:
+            return variant_name
+    return None
+
+
 def process_interfaces(interfaces, ports_chassis, dev):
     if interfaces is not None:
         for itf in interfaces:
@@ -200,3 +220,61 @@ def prepare(obj):
         return None, None, None, None
 
     return dv, modules, ports_chassis, device_view
+
+
+def prepare_svg(obj):
+    """Return (svg_views, modules, ports_chassis, device_view) for SVG rendering.
+
+    ``svg_views`` is a dict mapping position → SVG markup string.
+    Like ``prepare()``, returns (None, None, None, None) when no DeviceView exists.
+
+    For virtual chassis devices each member is rendered as its own SVG panel,
+    keyed by vc_position — matching the ports_chassis key used by the template.
+    """
+    ports_chassis = {}
+    svg_views = {}
+    modules = {}
+    device_view = None
+
+    try:
+        if obj.virtual_chassis is None:
+            device_view = DeviceView.objects.get(device_type=obj.device_type)
+            member_modules = list(obj.modules.all())
+            variant = _detect_variant(member_modules, device_view)
+            svg_views[obj.name] = get_svg_for_device_view(
+                device_view, variant_name=variant
+            )
+            modules[obj.name] = member_modules
+            ports_chassis = process_interfaces(
+                obj.interfaces.all(), ports_chassis, obj.name
+            )
+            ports_chassis = process_ports(obj.frontports.all(), ports_chassis, "Front")
+            ports_chassis = process_ports(obj.rearports.all(), ports_chassis, "Rear")
+            ports_chassis = process_ports(
+                ConsolePort.objects.filter(device_id=obj.id),
+                ports_chassis,
+                obj.name,
+            )
+        else:
+            for member in obj.virtual_chassis.members.all():
+                pos = member.vc_position
+                member_view = DeviceView.objects.get(device_type=member.device_type)
+                member_modules = list(member.modules.all())
+                variant = _detect_variant(member_modules, member_view)
+                svg_views[pos] = get_svg_for_device_view(
+                    member_view, variant_name=variant
+                )
+                modules[pos] = member_modules
+                ports_chassis = process_interfaces(
+                    member.interfaces.all(), ports_chassis, pos
+                )
+                ports_chassis = process_ports(
+                    ConsolePort.objects.filter(device_id=member.id),
+                    ports_chassis,
+                    pos,
+                )
+                device_view = member_view
+    except ObjectDoesNotExist:
+        return None, None, None, None
+
+    return svg_views, modules, ports_chassis, device_view
