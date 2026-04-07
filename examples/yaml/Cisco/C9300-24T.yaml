@@ -1,0 +1,56 @@
+version: 1
+
+meta:
+  description: "Cisco Catalyst 9300-24T"
+
+canvas:
+  columns: 32
+  rows: 2
+
+views:
+  front:
+    rows:
+      - blank: 14
+      - group:
+          spacer: 1
+          sections:
+            - sequence:
+                kind: interface
+                prefix: "gigabitethernet0-"
+                start: 1
+                count: 12
+                pattern: top-odd
+            - sequence:
+                kind: interface
+                prefix: "gigabitethernet0-"
+                start: 13
+                count: 12
+                pattern: top-odd
+      - spacer: 4
+
+variants:
+  C9300-NM-8X:
+    match: module
+    rows:
+      - blank: 14
+      - group:
+          spacer: 1
+          sections:
+            - sequence:
+                kind: interface
+                prefix: "gigabitethernet0-"
+                start: 1
+                count: 12
+                pattern: top-odd
+            - sequence:
+                kind: interface
+                prefix: "gigabitethernet0-"
+                start: 13
+                count: 12
+                pattern: top-odd
+            - sequence:
+                kind: interface
+                prefix: "tengigabitethernet1-"
+                start: 1
+                count: 8
+                pattern: top-odd

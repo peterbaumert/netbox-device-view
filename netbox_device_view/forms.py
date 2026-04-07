@@ -8,7 +8,7 @@ from utilities.forms.fields import CSVModelChoiceField
 class DeviceViewForm(NetBoxModelForm):
     class Meta:
         model = DeviceView
-        fields = ("device_type", "grid_template_area")
+        fields = ("device_type", "grid_template_area", "yaml_layout")
 
 
 class DeviceViewImportForm(NetBoxModelImportForm):
@@ -20,4 +20,4 @@ class DeviceViewImportForm(NetBoxModelImportForm):
 
     class Meta:
         model = DeviceView
-        fields = ("device_type", "grid_template_area")
+        fields = ("device_type", "grid_template_area", "yaml_layout")

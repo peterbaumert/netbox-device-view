@@ -1,0 +1,29 @@
+version: 1
+
+meta:
+  description: "Generic 24xLC Fiber Patch Panel"
+  # Front ports named "LC 1" ... "LC 24"; rear ports named "Rear Port 1" ... "Rear Port 24"
+
+canvas:
+  columns: 24
+  rows: 1
+  cell_size: 0  # patch-panel: auto sizing
+
+views:
+  front:
+    rows:
+      - sequence:
+          kind: port
+          prefix: "lc-"
+          start: 1
+          count: 24
+          pattern: all
+
+  rear:
+    rows:
+      - sequence:
+          kind: port
+          prefix: "rear-port-"
+          start: 1
+          count: 24
+          pattern: all

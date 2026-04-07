@@ -59,11 +59,11 @@ PLUGINS_CONFIG = {
 
 ## How It Works
 
-For each **Device Type** you create a **DeviceView** object (at *Plugins → Device Views → Add*) containing a CSS `grid-template-areas` definition. When you visit a device of that type, the plugin renders every interface and port as a clickable cell in the grid.
+For each **Device Type** you create a **DeviceView** object (at *Plugins → Device Views → Add*) with either a **YAML layout** or a raw **CSS layout**. When you visit a device of that type, the plugin renders every interface and port as a clickable cell in the grid.
 
 ### Port/Interface name → CSS grid-area name
 
-The plugin derives a `stylename` for each interface and port, which must match the area names in your CSS:
+The plugin derives a `stylename` for each interface and port:
 
 | Interface name | Stylename |
 |----------------|-----------|
@@ -82,54 +82,105 @@ The plugin derives a `stylename` for each interface and port, which must match t
 - Purely numeric stylenames are prefixed with `p`
 - Virtual and LAG interfaces are skipped
 
-### CSS layout format
+---
 
-The `grid_template_area` field stores raw CSS. The grid has **32 columns** and uses **20 px cells**.
+## Layout formats
 
-Placeholder names:
-- `x` — leading empty cell
-- `z` — trailing empty cell
-- `s0`–`s99` — interior spacer cells
+A DeviceView supports two layout formats. **YAML is preferred** — it is easier to write, validate, and maintain. Legacy CSS is still fully supported for backward compatibility.
 
-Example for a Cisco C9300-24T with an optional 8x 10G module (more in the [`examples/`](examples/) folder):
+### YAML layout (recommended)
+
+Fill the **YAML Layout** field with a YAML document describing the device layout. The plugin compiles it to CSS at render time.
+
+Example for a Cisco C9300-24T with an optional 8x 10G expansion module:
+
+```yaml
+version: 1
+
+meta:
+  description: "Cisco Catalyst 9300-24T"
+
+canvas:
+  columns: 32
+  rows: 2
+
+views:
+  front:
+    rows:
+      - blank: 14
+      - group:
+          spacer: 1
+          sections:
+            - sequence:
+                kind: interface
+                prefix: "gigabitethernet0-"
+                start: 1
+                count: 12
+                pattern: top-odd
+            - sequence:
+                kind: interface
+                prefix: "gigabitethernet0-"
+                start: 13
+                count: 12
+                pattern: top-odd
+      - spacer: 4
+
+variants:
+  C9300-NM-8X:
+    match: module
+    rows:
+      - blank: 14
+      - group:
+          spacer: 1
+          sections:
+            - sequence:
+                kind: interface
+                prefix: "gigabitethernet0-"
+                start: 1
+                count: 12
+                pattern: top-odd
+            - sequence:
+                kind: interface
+                prefix: "gigabitethernet0-"
+                start: 13
+                count: 12
+                pattern: top-odd
+            - sequence:
+                kind: interface
+                prefix: "tengigabitethernet1-"
+                start: 1
+                count: 8
+                pattern: top-odd
+```
+
+See [`docs/yaml-layout-schema.md`](docs/yaml-layout-schema.md) for the full schema reference and [`examples/yaml/`](examples/yaml/) for ready-made YAML files.
+
+### CSS layout (legacy)
+
+Fill the **Grid Template Area** field with raw CSS. The grid has **32 columns** and uses **20 px cells**.
+
+Placeholder names: `x` — leading blank, `z` — trailing blank, `s0`–`s99` — interior spacers.
 
 ```css
 /* C9300-24T */
 .deviceview.area {
-	grid-template-areas:
-	"x x x x x x x x x x x x x x gigabitethernet0-1 gigabitethernet0-3 gigabitethernet0-5 gigabitethernet0-7 gigabitethernet0-9 gigabitethernet0-11 s0 gigabitethernet0-13 gigabitethernet0-15 gigabitethernet0-17 gigabitethernet0-19 gigabitethernet0-21 gigabitethernet0-23 z z z z z"
-	"x x x x x x x x x x x x x x gigabitethernet0-2 gigabitethernet0-4 gigabitethernet0-6 gigabitethernet0-8 gigabitethernet0-10 gigabitethernet0-12 s0 gigabitethernet0-14 gigabitethernet0-16 gigabitethernet0-18 gigabitethernet0-20 gigabitethernet0-22 gigabitethernet0-24 z z z z z";
-}
-
-/* C9300-24T with C9300-NM-8X */
-.deviceview.moduleC9300-NM-8X.area {
-	grid-template-areas:
-	"x x x x x x x x x x x x x x gigabitethernet0-1 gigabitethernet0-3 gigabitethernet0-5 gigabitethernet0-7 gigabitethernet0-9 gigabitethernet0-11 s0 gigabitethernet0-13 gigabitethernet0-15 gigabitethernet0-17 gigabitethernet0-19 gigabitethernet0-21 gigabitethernet0-23 s1 tengigabitethernet1-1 tengigabitethernet1-3 tengigabitethernet1-5 tengigabitethernet1-7"
-	"x x x x x x x x x x x x x x gigabitethernet0-2 gigabitethernet0-4 gigabitethernet0-6 gigabitethernet0-8 gigabitethernet0-10 gigabitethernet0-12 s0 gigabitethernet0-14 gigabitethernet0-16 gigabitethernet0-18 gigabitethernet0-20 gigabitethernet0-22 gigabitethernet0-24 s1 tengigabitethernet1-2 tengigabitethernet1-4 tengigabitethernet1-6 tengigabitethernet1-8";
+    grid-template-areas:
+    "x x x x x x x x x x x x x x gigabitethernet0-1 gigabitethernet0-3 ... z z z z z"
+    "x x x x x x x x x x x x x x gigabitethernet0-2 gigabitethernet0-4 ... z z z z z";
 }
 ```
+
+See [`examples/`](examples/) for ready-made CSS files.
+
+> **Precedence:** if a DeviceView has a YAML layout, it is used and the CSS field is ignored.
 
 ### Module variants
 
-If a device has an installed module, an additional CSS class matching the module model is added. Define a separate rule to override the layout when that module is present (see the example above).
+When a device has an installed module, an extra CSS class matching the module model is added to the device div. In YAML, declare a `variants:` block. In CSS, add a `.deviceview.module{ModelName}.area` rule.
 
 ### Virtual Chassis
 
-For virtual chassis devices, each member's CSS areas are scoped with a `.d{vc_position}` suffix automatically. Define per-member layouts using those suffixes:
-
-```css
-/* Member at vc_position 1 */
-.deviceview.area.d1 {
-    grid-template-areas: "gigabitethernet0-1 gigabitethernet0-2";
-}
-
-/* Member at vc_position 2 */
-.deviceview.area.d2 {
-    grid-template-areas: "gigabitethernet0-1 gigabitethernet0-2";
-}
-```
-
-More ready-made layouts for Cisco C2960X, C8300, C9200, C9300, generic patch panels, and Ubiquiti switches are in the [`examples/`](examples/) folder.
+For virtual chassis devices, each member's CSS areas are scoped with a `.d{vc_position}` suffix automatically. YAML-rendered CSS is scoped the same way.
 
 ## Troubleshooting
 

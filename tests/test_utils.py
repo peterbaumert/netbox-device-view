@@ -231,7 +231,9 @@ class TestPrepare:
     @patch("netbox_device_view.utils.ConsolePort")
     @patch("netbox_device_view.utils.DeviceView")
     def test_single_device_returns_dicts(self, MockDV, MockCP):
-        MockDV.objects.get.return_value.grid_template_area = ".area { }"
+        mock_dv = MockDV.objects.get.return_value
+        mock_dv.grid_template_area = ".area { }"
+        mock_dv.has_yaml_layout = False
         MockCP.objects.filter.return_value = []
         dev = self._make_device()
 
@@ -244,7 +246,9 @@ class TestPrepare:
     @patch("netbox_device_view.utils.ConsolePort")
     @patch("netbox_device_view.utils.DeviceView")
     def test_interfaces_processed_into_ports_chassis(self, MockDV, MockCP):
-        MockDV.objects.get.return_value.grid_template_area = ".area { }"
+        mock_dv = MockDV.objects.get.return_value
+        mock_dv.grid_template_area = ".area { }"
+        mock_dv.has_yaml_layout = False
         MockCP.objects.filter.return_value = []
 
         dev = self._make_device()
@@ -263,7 +267,9 @@ class TestPrepare:
     @patch("netbox_device_view.utils.ConsolePort")
     @patch("netbox_device_view.utils.DeviceView")
     def test_virtual_interfaces_excluded(self, MockDV, MockCP):
-        MockDV.objects.get.return_value.grid_template_area = ".area { }"
+        mock_dv = MockDV.objects.get.return_value
+        mock_dv.grid_template_area = ".area { }"
+        mock_dv.has_yaml_layout = False
         MockCP.objects.filter.return_value = []
 
         dev = self._make_device()
@@ -281,7 +287,9 @@ class TestPrepare:
     @patch("netbox_device_view.utils.ConsolePort")
     @patch("netbox_device_view.utils.DeviceView")
     def test_virtual_chassis_scopes_css(self, MockDV, MockCP):
-        MockDV.objects.get.return_value.grid_template_area = ".deviceview.area { }"
+        mock_dv = MockDV.objects.get.return_value
+        mock_dv.grid_template_area = ".deviceview.area { }"
+        mock_dv.has_yaml_layout = False
         MockCP.objects.filter.return_value = []
 
         member1 = MagicMock()
