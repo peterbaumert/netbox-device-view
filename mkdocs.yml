@@ -1,0 +1,58 @@
+site_name: NetBox Device View
+site_description: Renders a visual panel view of device ports and interfaces in NetBox
+site_url: https://peterbaumert.github.io/netbox-device-view/
+repo_url: https://github.com/peterbaumert/netbox-device-view
+repo_name: peterbaumert/netbox-device-view
+edit_uri: edit/main/docs/
+
+docs_dir: docs
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - content.code.annotate
+    - toc.follow
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Configuration: configuration.md
+  - How It Works: how-it-works.md
+  - Layouts:
+    - YAML Layout: layout-yaml.md
+    - CSS Layout (legacy): layout-css.md
+  - SVG Renderer: svg-renderer.md
+  - Virtual Chassis: virtual-chassis.md
+  - Troubleshooting: troubleshooting.md
+  - yaml-layout-schema.md

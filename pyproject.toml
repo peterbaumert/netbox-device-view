@@ -19,6 +19,10 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/peterbaumert/netbox-device-view"
+Documentation = "https://peterbaumert.github.io/netbox-device-view/"
+
+[project.optional-dependencies]
+docs = ["mkdocs-material>=9.5"]
 
 [tool.setuptools.packages.find]
 where = ["."]
