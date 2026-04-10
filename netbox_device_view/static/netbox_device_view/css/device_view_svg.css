@@ -76,6 +76,8 @@
 .dv-port.bg-success    .dv-port-rect { fill: #198754; }
 .dv-port.bg-secondary  .dv-port-rect { fill: #6c757d; }
 .dv-port.bg-danger     .dv-port-rect { fill: #dc3545; }
+/* Partial connection: cable attached but far-end has no device */
+.dv-port.bg-warning    .dv-port-rect { fill: #ffc107; }
 
 /* Cable colour override — applied inline via JS (style attribute on .dv-port) */
 /* No rule needed; the JS sets fill on .dv-port-rect directly               */
@@ -83,6 +85,15 @@
 /* No-color (patch cable with no colour set) */
 .dv-port.nocolor .dv-port-rect {
     fill: url(#dv-nocolor-pattern);
+}
+
+/* Partial connection dot overlay — small warning circle in the top-right corner.
+   Always rendered on top of the port rect, visible even in cable colour mode. */
+.dv-partial-dot {
+    fill: #ffc107;
+    stroke: #333;
+    stroke-width: 0.5;
+    pointer-events: none;
 }
 
 /* ── Structural elements ───────────────────────────────────────────────────── */
