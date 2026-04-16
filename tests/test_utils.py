@@ -295,6 +295,8 @@ class TestPrepare:
         member1 = MagicMock()
         member1.vc_position = 1
         member1.id = 1
+        member1.position = None
+        member1.rack = None
         member1.device_type = MagicMock()
         member1.interfaces.all.return_value = []
         member1.modules.all.return_value = []
@@ -302,12 +304,14 @@ class TestPrepare:
         member2 = MagicMock()
         member2.vc_position = 2
         member2.id = 2
+        member2.position = None
+        member2.rack = None
         member2.device_type = MagicMock()
         member2.interfaces.all.return_value = []
         member2.modules.all.return_value = []
 
         dev = self._make_device(vc=MagicMock())
-        dev.virtual_chassis.members.all.return_value = [member1, member2]
+        dev.virtual_chassis.members.select_related.return_value.all.return_value = [member1, member2]
 
         dv, modules, ports_chassis, device_view = prepare(dev)
 
@@ -328,12 +332,14 @@ class TestPrepare:
         member = MagicMock()
         member.vc_position = 1
         member.id = 1
+        member.position = None
+        member.rack = None
         member.device_type = MagicMock()
         member.interfaces.all.return_value = []
         member.modules.all.return_value = []
 
         dev = self._make_device(vc=MagicMock())
-        dev.virtual_chassis.members.all.return_value = [member]
+        dev.virtual_chassis.members.select_related.return_value.all.return_value = [member]
 
         dv, modules, ports_chassis, device_view = prepare(dev)
 
