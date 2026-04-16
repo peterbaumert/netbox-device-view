@@ -110,6 +110,7 @@
     {% for switch, interfaces in ports_chassis.items %}
     {% for int in interfaces %}
     {
+      device: "{{ switch }}",
       stylename: "{{ int.stylename }}",
       url: "{{ int.get_absolute_url }}trace/",
       name: "{{ int.name|escapejs }}",
@@ -127,7 +128,10 @@
 
   function applyPortStatus() {
     portData.forEach(function (p) {
-      var groups = document.querySelectorAll(".dv-port." + CSS.escape(p.stylename));
+        var wrapper = document.getElementById("dv-svg-wrapper-" + p.device);
+        var groups = wrapper
+          ? wrapper.querySelectorAll(".dv-port." + CSS.escape(p.stylename))
+          : document.querySelectorAll(".dv-port." + CSS.escape(p.stylename));
       groups.forEach(function (g) {
         var rect = g.querySelector(".dv-port-rect");
         if (p.cableNoColor) {
