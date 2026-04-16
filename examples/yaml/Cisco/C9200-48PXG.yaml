@@ -35,9 +35,15 @@ views:
                 kind: interface
                 prefix: "gigabitethernet0-"
                 start: 37
-                count: 12
+                count: 4
                 pattern: top-odd
-            - blank: 5
+      - sequence:
+          kind: interface
+          prefix: "tengigabitethernet0-"
+          start: 41
+          count: 8
+          pattern: top-odd
+      - blank: 5
 
 variants:
   C9200-NM-4X:
@@ -68,8 +74,14 @@ variants:
                 kind: interface
                 prefix: "gigabitethernet0-"
                 start: 37
-                count: 12
+                count: 4
                 pattern: top-odd
+      - sequence:
+          kind: interface
+          prefix: "tengigabitethernet0-"
+          start: 41
+          count: 8
+          pattern: top-odd
       - spacer: 1
       - sequence:
           kind: interface
