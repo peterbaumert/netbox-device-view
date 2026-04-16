@@ -171,6 +171,30 @@ def process_ports(ports, ports_chassis, dev):
     return ports_chassis
 
 
+def _rack_sort_key(member):
+    """Sort key for virtual chassis members by physical rack position.
+
+    Respects the rack's ``desc_units`` flag:
+      - desc_units=False (default): U1 is at the bottom → higher U = higher in rack
+        → sort descending so the top-of-rack device appears first.
+      - desc_units=True: U1 is at the top → lower U = higher in rack
+        → sort ascending so the top-of-rack device appears first.
+
+    Members without a rack position are placed last, tiebroken by vc_position.
+    """
+    pos = member.position
+    vc = member.vc_position if member.vc_position is not None else 0
+    if pos is None:
+        return (1, float("inf"), vc)  # un-racked: always last
+    desc = bool(member.rack and member.rack.desc_units)
+    if desc:
+        # U1 at top → ascending: smallest U first
+        return (0, float(pos), vc)
+    else:
+        # U1 at bottom → descending: largest U first (negate)
+        return (0, -float(pos), vc)
+
+
 def prepare(obj):
     """Return (dv, modules, ports_chassis, device_view) for the given device.
 
@@ -198,7 +222,11 @@ def prepare(obj):
                 obj.name,
             )
         else:
-            for member in obj.virtual_chassis.members.all():
+            members = sorted(
+                obj.virtual_chassis.members.select_related("rack").all(),
+                key=_rack_sort_key,
+            )
+            for member in members:
                 pos = member.vc_position
                 member_view = DeviceView.objects.get(device_type=member.device_type)
                 member_css = get_css_for_device_view(member_view)
@@ -256,7 +284,11 @@ def prepare_svg(obj):
                 obj.name,
             )
         else:
-            for member in obj.virtual_chassis.members.all():
+            members = sorted(
+                obj.virtual_chassis.members.select_related("rack").all(),
+                key=_rack_sort_key,
+            )
+            for member in members:
                 pos = member.vc_position
                 member_view = DeviceView.objects.get(device_type=member.device_type)
                 member_modules = list(member.modules.all())
