@@ -9,8 +9,6 @@ the existing vertical row_span behaviour.
 
 from __future__ import annotations
 
-import pytest
-
 from netbox_device_view.management.commands.css_to_yaml import (
     _classify,
     _css_to_yaml_dict,
