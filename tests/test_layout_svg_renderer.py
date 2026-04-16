@@ -690,7 +690,12 @@ views:
         svg = _render(yaml_text)
         expected_w = 2 * 20 + GAP  # 42 px at default cell_size=20
         # Each 100G port rect must have the double-wide width
-        for port in ("hundredgige0-25", "hundredgige0-26", "hundredgige0-27", "hundredgige0-28"):
+        for port in (
+            "hundredgige0-25",
+            "hundredgige0-26",
+            "hundredgige0-27",
+            "hundredgige0-28",
+        ):
             assert port in svg, f"Port {port} missing from SVG"
         assert f'width="{expected_w}"' in svg
 

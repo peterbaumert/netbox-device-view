@@ -18,7 +18,6 @@ from netbox_device_view.management.commands.css_to_yaml import (
     _parse_rows,
 )
 
-
 # ---------------------------------------------------------------------------
 # _classify
 # ---------------------------------------------------------------------------
@@ -130,21 +129,48 @@ class TestHorizontalSpan:
         Each pair must produce a single element with span: {cols: 2}.
         """
         grid = [
-            ["hundredgige0-25", "hundredgige0-25", "hundredgige0-27", "hundredgige0-27"],
-            ["hundredgige0-26", "hundredgige0-26", "hundredgige0-28", "hundredgige0-28"],
+            [
+                "hundredgige0-25",
+                "hundredgige0-25",
+                "hundredgige0-27",
+                "hundredgige0-27",
+            ],
+            [
+                "hundredgige0-26",
+                "hundredgige0-26",
+                "hundredgige0-28",
+                "hundredgige0-28",
+            ],
         ]
         elements = _grid_to_elements(grid, canvas_rows=2, canvas_cols=4)
-        assert len(elements) == 4, f"Expected 4 elements, got {len(elements)}: {elements}"
+        assert (
+            len(elements) == 4
+        ), f"Expected 4 elements, got {len(elements)}: {elements}"
         keys = {e["key"] for e in elements}
-        assert keys == {"hundredgige0-25", "hundredgige0-26", "hundredgige0-27", "hundredgige0-28"}
+        assert keys == {
+            "hundredgige0-25",
+            "hundredgige0-26",
+            "hundredgige0-27",
+            "hundredgige0-28",
+        }
         for e in elements:
             assert e.get("span") == {"cols": 2}, f"Element {e['key']} missing span: {e}"
 
     def test_horizontal_span_positions(self):
         """Verify the at: coordinates of each element are correct."""
         grid = [
-            ["hundredgige0-25", "hundredgige0-25", "hundredgige0-27", "hundredgige0-27"],
-            ["hundredgige0-26", "hundredgige0-26", "hundredgige0-28", "hundredgige0-28"],
+            [
+                "hundredgige0-25",
+                "hundredgige0-25",
+                "hundredgige0-27",
+                "hundredgige0-27",
+            ],
+            [
+                "hundredgige0-26",
+                "hundredgige0-26",
+                "hundredgige0-28",
+                "hundredgige0-28",
+            ],
         ]
         elements = _grid_to_elements(grid, canvas_rows=2, canvas_cols=4)
         by_key = {e["key"]: e for e in elements}
@@ -210,11 +236,16 @@ class TestCssToyamlEndToEnd:
         front_elements = result["views"]["front"]["elements"]
         by_key = {e.get("key"): e for e in front_elements if "key" in e}
 
-        for port in ("hundredgige0-25", "hundredgige0-26", "hundredgige0-27", "hundredgige0-28"):
+        for port in (
+            "hundredgige0-25",
+            "hundredgige0-26",
+            "hundredgige0-27",
+            "hundredgige0-28",
+        ):
             assert port in by_key, f"Port {port} missing from converted elements"
-            assert by_key[port].get("span", {}).get("cols") == 2, (
-                f"Port {port} should have span.cols=2, got: {by_key[port]}"
-            )
+            assert (
+                by_key[port].get("span", {}).get("cols") == 2
+            ), f"Port {port} should have span.cols=2, got: {by_key[port]}"
 
     def test_vertical_span_still_works_after_fix(self):
         """
