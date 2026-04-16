@@ -27,7 +27,7 @@
 {% endblock %}
 {% block content %}
 <div class="card">
-	<h2 class="card-header">Deviceview {{ object.name }}</h2>
+	<h2 class="card-header">Deviceview {% if object.virtual_chassis %}{{ object.virtual_chassis.name }}{% else %}{{ object.name }}{% endif %}</h2>
 	<div class="card-body">
 		{% spaceless %}
 		{% if use_svg %}

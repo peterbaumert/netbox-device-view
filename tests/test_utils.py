@@ -311,7 +311,10 @@ class TestPrepare:
         member2.modules.all.return_value = []
 
         dev = self._make_device(vc=MagicMock())
-        dev.virtual_chassis.members.select_related.return_value.all.return_value = [member1, member2]
+        dev.virtual_chassis.members.select_related.return_value.all.return_value = [
+            member1,
+            member2,
+        ]
 
         dv, modules, ports_chassis, device_view = prepare(dev)
 
@@ -339,7 +342,9 @@ class TestPrepare:
         member.modules.all.return_value = []
 
         dev = self._make_device(vc=MagicMock())
-        dev.virtual_chassis.members.select_related.return_value.all.return_value = [member]
+        dev.virtual_chassis.members.select_related.return_value.all.return_value = [
+            member
+        ]
 
         dv, modules, ports_chassis, device_view = prepare(dev)
 
