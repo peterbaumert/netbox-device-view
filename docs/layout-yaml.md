@@ -307,6 +307,7 @@ Example YAML files are available in [`examples/yaml/`](https://github.com/peterb
 
 | File | Device |
 |---|---|
+| `Cisco/C9200-48PXG.yaml` | Cisco Catalyst 9200-48PXG (+ C9200-NM-4X variant) |
 | `Cisco/C9300-24T.yaml` | Cisco Catalyst 9300-24T (+ C9300-NM-8X variant) |
 | `Cisco/C2960X-24TD-L.yaml` | Cisco Catalyst 2960X-24TD-L |
 | `Cisco/C8300-2N2S-4T2X.yaml` | Cisco C8300-2N2S-4T2X |

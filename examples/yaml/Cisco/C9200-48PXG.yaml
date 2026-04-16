@@ -1,0 +1,80 @@
+version: 1
+
+meta:
+  description: "Cisco Catalyst 9200-48PXG"
+
+canvas:
+  columns: 32
+  rows: 2
+
+views:
+  front:
+    rows:
+      - group:
+          spacer: 1
+          sections:
+            - sequence:
+                kind: interface
+                prefix: "gigabitethernet0-"
+                start: 1
+                count: 12
+                pattern: top-odd
+            - sequence:
+                kind: interface
+                prefix: "gigabitethernet0-"
+                start: 13
+                count: 12
+                pattern: top-odd
+            - sequence:
+                kind: interface
+                prefix: "gigabitethernet0-"
+                start: 25
+                count: 12
+                pattern: top-odd
+            - sequence:
+                kind: interface
+                prefix: "gigabitethernet0-"
+                start: 37
+                count: 12
+                pattern: top-odd
+            - blank: 5
+
+variants:
+  C9200-NM-4X:
+    match: module
+    rows:
+      - group:
+          spacer: 1
+          sections:
+            - sequence:
+                kind: interface
+                prefix: "gigabitethernet0-"
+                start: 1
+                count: 12
+                pattern: top-odd
+            - sequence:
+                kind: interface
+                prefix: "gigabitethernet0-"
+                start: 13
+                count: 12
+                pattern: top-odd
+            - sequence:
+                kind: interface
+                prefix: "gigabitethernet0-"
+                start: 25
+                count: 12
+                pattern: top-odd
+            - sequence:
+                kind: interface
+                prefix: "gigabitethernet0-"
+                start: 37
+                count: 12
+                pattern: top-odd
+      - spacer: 1
+      - sequence:
+          kind: interface
+          prefix: "tengigabitethernet1-"
+          start: 1
+          count: 4
+          pattern: all
+          row: 2
