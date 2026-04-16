@@ -620,6 +620,92 @@ views:
 
 
 # ---------------------------------------------------------------------------
+# Double-wide ports (col_span=2 / QSFP-style)
+# ---------------------------------------------------------------------------
+
+
+class TestDoubleWidePorts:
+    DOUBLE_WIDE_YAML = """
+version: 1
+canvas:
+  columns: 4
+  rows: 2
+  cell_size: 20
+views:
+  front:
+    elements:
+      - kind: interface
+        key: sfp-1
+        at: {row: 1, col: 1}
+      - kind: interface
+        key: sfp-2
+        at: {row: 2, col: 1}
+      - kind: interface
+        key: hundredgige-1
+        at: {row: 1, col: 2}
+        span: {cols: 2}
+      - kind: interface
+        key: hundredgige-2
+        at: {row: 2, col: 2}
+        span: {cols: 2}
+      - kind: interface
+        key: sfp-3
+        at: {row: 1, col: 4}
+      - kind: interface
+        key: sfp-4
+        at: {row: 2, col: 4}
+"""
+
+    def test_double_wide_port_count(self):
+        """Double-wide ports render as one <g> element each, not two."""
+        svg = _render(self.DOUBLE_WIDE_YAML)
+        port_groups = re.findall(r'<g class="dv-port\b', svg)
+        # 4 single-wide + 2 double-wide = 6 port groups total
+        assert len(port_groups) == 6
+
+    def test_double_wide_port_rect_width(self):
+        """A col_span=2 port rect must be 2*cell_size + GAP wide."""
+        svg = _render(self.DOUBLE_WIDE_YAML)
+        expected_w = 2 * 20 + GAP  # 42 px
+        assert f'width="{expected_w}"' in svg
+
+    def test_single_wide_port_rect_width(self):
+        """A col_span=1 port rect stays at exactly cell_size wide."""
+        svg = _render(self.DOUBLE_WIDE_YAML)
+        # width="20" must appear (single-wide ports)
+        assert 'width="20"' in svg
+
+    def test_double_wide_port_key_present(self):
+        """The double-wide port's stylename class appears exactly once."""
+        svg = _render(self.DOUBLE_WIDE_YAML)
+        assert svg.count("hundredgige-1") >= 1
+        assert svg.count("hundredgige-2") >= 1
+
+    def test_c9500_24y4c_hundredgig_double_wide(self):
+        """C9500-24Y4C: all four 100G ports render at double-width."""
+        import pathlib
+
+        repo_root = pathlib.Path(__file__).parent.parent
+        yaml_text = (repo_root / "examples/yaml/Cisco/C9500-24Y4C.yaml").read_text()
+        svg = _render(yaml_text)
+        expected_w = 2 * 20 + GAP  # 42 px at default cell_size=20
+        # Each 100G port rect must have the double-wide width
+        for port in ("hundredgige0-25", "hundredgige0-26", "hundredgige0-27", "hundredgige0-28"):
+            assert port in svg, f"Port {port} missing from SVG"
+        assert f'width="{expected_w}"' in svg
+
+    def test_c9500_24y4c_total_port_count(self):
+        """C9500-24Y4C: 24 × 25G + 4 × 100G + 1 mgmt + 1 console = 30 port groups."""
+        import pathlib
+
+        repo_root = pathlib.Path(__file__).parent.parent
+        yaml_text = (repo_root / "examples/yaml/Cisco/C9500-24Y4C.yaml").read_text()
+        svg = _render(yaml_text)
+        port_groups = re.findall(r'<g class="dv-port\b', svg)
+        assert len(port_groups) == 30
+
+
+# ---------------------------------------------------------------------------
 # All bundled YAML examples render without error
 # ---------------------------------------------------------------------------
 
@@ -633,6 +719,7 @@ class TestYAMLExamplesRenderToSVG:
             "examples/yaml/Cisco/C2960X-24TD-L.yaml",
             "examples/yaml/Cisco/C8300-2N2S-4T2X.yaml",
             "examples/yaml/Cisco/FPR1120-NGFW-K9.yaml",
+            "examples/yaml/Cisco/C9500-24Y4C.yaml",
             "examples/yaml/Generic/24-ports-UTP-Patchpanel.yaml",
             "examples/yaml/Generic/48-ports-UTP-Patchpanel.yaml",
             "examples/yaml/Generic/24xLC-Patchpanel.yaml",

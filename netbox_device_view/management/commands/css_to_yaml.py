@@ -127,9 +127,16 @@ def _grid_to_elements(
     """
     Convert a 2D token grid to a flat list of element dicts.
 
-    Tokens that appear identically in every row of a multi-row grid at the
-    same column position are emitted as a single element spanning all rows.
-    Otherwise each cell is emitted individually.
+    Horizontal spanning: tokens repeated in adjacent columns of the same row
+    (e.g. ``hundredgige0-25 hundredgige0-25``) are emitted as a single element
+    with ``span: {cols: N}``.
+
+    Vertical spanning: tokens that appear identically in every row of a
+    multi-row grid at the same column block are emitted as a single element
+    with ``span: {rows: N}``.
+
+    Both can combine: a block repeated horizontally across H columns and
+    vertically across V rows produces ``span: {rows: V, cols: H}``.
 
     ``col_span_override`` forces every port element to use that col_span
     (used for rear views with few ports spread across the full canvas width).
@@ -146,38 +153,47 @@ def _grid_to_elements(
     elements: list[dict] = []
     seen: set[tuple[int, int]] = set()  # (row_idx, col_idx) cells already emitted
 
-    for col_idx in range(canvas_cols):
-        for row_idx in range(num_rows):
+    # Iterate row-first so horizontal spans are detected naturally within each row.
+    for row_idx in range(num_rows):
+        for col_idx in range(canvas_cols):
             if (row_idx, col_idx) in seen:
                 continue
 
-            token = padded[row_idx][col_idx] if col_idx < len(padded[row_idx]) else "x"
+            token = padded[row_idx][col_idx]
             kind = _classify(token)
 
-            # Check if this token spans all remaining rows at this column
-            span_rows = 1
-            if num_rows > 1 and row_idx == 0:
-                # Does this token appear in every lower row at the same column?
-                if all(
-                    col_idx < len(padded[r]) and padded[r][col_idx] == token
-                    for r in range(1, num_rows)
-                ):
-                    span_rows = num_rows
-                    for r in range(num_rows):
-                        seen.add((r, col_idx))
+            # ── Horizontal look-ahead: count consecutive identical tokens in this row ──
+            h_span = 1
+            while (
+                col_idx + h_span < canvas_cols
+                and padded[row_idx][col_idx + h_span] == token
+            ):
+                h_span += 1
+
+            # ── Vertical look-ahead: does the same h_span block repeat in lower rows? ──
+            v_span = 1
+            for r in range(row_idx + 1, num_rows):
+                block_matches = all(
+                    padded[r][col_idx + c] == token for c in range(h_span)
+                )
+                if block_matches:
+                    v_span += 1
                 else:
-                    seen.add((row_idx, col_idx))
-            else:
-                seen.add((row_idx, col_idx))
+                    break
+
+            # Mark all covered cells as seen
+            for r in range(row_idx, row_idx + v_span):
+                for c in range(col_idx, col_idx + h_span):
+                    seen.add((r, c))
 
             at = {"row": row_idx + 1, "col": col_idx + 1}
             span: dict = {}
-            if span_rows > 1:
-                span["rows"] = span_rows
+            if v_span > 1:
+                span["rows"] = v_span
             eff_col_span = (
                 col_span_override
                 if (col_span_override and col_span_override > 1)
-                else 1
+                else h_span
             )
             if eff_col_span > 1:
                 span["cols"] = eff_col_span

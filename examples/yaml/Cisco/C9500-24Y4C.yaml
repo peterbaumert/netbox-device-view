@@ -1,0 +1,126 @@
+version: 1
+
+meta:
+  description: "Cisco Catalyst 9500-24Y4C"
+
+canvas:
+  columns: 32
+  rows: 2
+
+views:
+  front:
+    elements:
+      # Col 1: management port (row 1) and console port (row 2) — separate 1×1 cells
+      - kind: interface
+        key: gigabitethernet-0
+        at: {row: 1, col: 1}
+
+      - kind: console-port
+        key: con0
+        at: {row: 2, col: 1}
+
+      # Col 2: blank — spans both rows
+      - kind: blank
+        at: {row: 1, col: 2}
+        span: {rows: 2}
+
+      # Cols 3–14: 24× 25G SFP28 ports (odd ports top row, even ports bottom row)
+      - kind: interface
+        key: twentyfivegige0-1
+        at: {row: 1, col: 3}
+      - kind: interface
+        key: twentyfivegige0-2
+        at: {row: 2, col: 3}
+      - kind: interface
+        key: twentyfivegige0-3
+        at: {row: 1, col: 4}
+      - kind: interface
+        key: twentyfivegige0-4
+        at: {row: 2, col: 4}
+      - kind: interface
+        key: twentyfivegige0-5
+        at: {row: 1, col: 5}
+      - kind: interface
+        key: twentyfivegige0-6
+        at: {row: 2, col: 5}
+      - kind: interface
+        key: twentyfivegige0-7
+        at: {row: 1, col: 6}
+      - kind: interface
+        key: twentyfivegige0-8
+        at: {row: 2, col: 6}
+      - kind: interface
+        key: twentyfivegige0-9
+        at: {row: 1, col: 7}
+      - kind: interface
+        key: twentyfivegige0-10
+        at: {row: 2, col: 7}
+      - kind: interface
+        key: twentyfivegige0-11
+        at: {row: 1, col: 8}
+      - kind: interface
+        key: twentyfivegige0-12
+        at: {row: 2, col: 8}
+      - kind: interface
+        key: twentyfivegige0-13
+        at: {row: 1, col: 9}
+      - kind: interface
+        key: twentyfivegige0-14
+        at: {row: 2, col: 9}
+      - kind: interface
+        key: twentyfivegige0-15
+        at: {row: 1, col: 10}
+      - kind: interface
+        key: twentyfivegige0-16
+        at: {row: 2, col: 10}
+      - kind: interface
+        key: twentyfivegige0-17
+        at: {row: 1, col: 11}
+      - kind: interface
+        key: twentyfivegige0-18
+        at: {row: 2, col: 11}
+      - kind: interface
+        key: twentyfivegige0-19
+        at: {row: 1, col: 12}
+      - kind: interface
+        key: twentyfivegige0-20
+        at: {row: 2, col: 12}
+      - kind: interface
+        key: twentyfivegige0-21
+        at: {row: 1, col: 13}
+      - kind: interface
+        key: twentyfivegige0-22
+        at: {row: 2, col: 13}
+      - kind: interface
+        key: twentyfivegige0-23
+        at: {row: 1, col: 14}
+      - kind: interface
+        key: twentyfivegige0-24
+        at: {row: 2, col: 14}
+
+      # Cols 15–28: spacer block — spans both rows, 14 columns wide
+      - kind: spacer
+        at: {row: 1, col: 15}
+        span: {rows: 2, cols: 14}
+
+      # Cols 29–30: first pair of 100G QSFP28 ports — each spans 2 columns (double-wide)
+      - kind: interface
+        key: hundredgige0-25
+        at: {row: 1, col: 29}
+        span: {cols: 2}
+
+      - kind: interface
+        key: hundredgige0-26
+        at: {row: 2, col: 29}
+        span: {cols: 2}
+
+      # Cols 31–32: second pair of 100G QSFP28 ports — each spans 2 columns (double-wide)
+      - kind: interface
+        key: hundredgige0-27
+        at: {row: 1, col: 31}
+        span: {cols: 2}
+
+      - kind: interface
+        key: hundredgige0-28
+        at: {row: 2, col: 31}
+        span: {cols: 2}
