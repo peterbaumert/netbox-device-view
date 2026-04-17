@@ -119,7 +119,7 @@
       name: "{{ int.name|escapejs }}",
       enabled: {% if int.enabled or int.is_port %}true{% else %}false{% endif %},
       connected: {% if int.connected_endpoints|length > 0 or int.is_port and int.link_peers|length > 0 %}true{% else %}false{% endif %},
-      partiallyConnected: {% if int.link_peers|length > 0 and int.connected_endpoints|length == 0 %}true{% else %}false{% endif %},
+      partiallyConnected: {% if not int.is_port and int.link_peers|length > 0 and int.connected_endpoints|length == 0 %}true{% else %}false{% endif %},
       cableColor: "{% if cable_colors == 'on' and int.cable.color != '' %}{{ int.cable.color }}{% endif %}",
       cableNoColor: {% if cable_colors == "on" and int.cable.color == "" or cable_colors == "on" and int.cable == None %}true{% else %}false{% endif %},
       connectedEndpoints: [{% for ce in int.connected_endpoints %}"{{ ce.device }} | {{ ce.name }}"{% if not forloop.last %},{% endif %}{% endfor %}],
