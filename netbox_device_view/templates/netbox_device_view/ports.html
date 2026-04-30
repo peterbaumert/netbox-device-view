@@ -52,7 +52,7 @@
 		>
 			{% for int in interfaces %}
 			<a
-				href="{{int.get_absolute_url}}trace/"
+				href="{{int.get_absolute_url}}"
 				class="device-view-port 
 				{% if cable_colors == "on" and int.cable.color == "" or cable_colors == "on" and int.cable == None %}
 				nocolor
@@ -78,6 +78,7 @@
 					{% endif %}
 					{% endfor %}
 				{% endif %}
+				<hr><a href='{{int.get_absolute_url}}trace/'>Trace</a>
 				"
 				style="grid-area: {{ int.stylename }}{% if cable_colors == 'on' and int.cable.color != '' %}; background-color: #{{ int.cable.color }}{% endif %}"
 				data-bs-toggle="tooltip"
@@ -112,7 +113,8 @@
     {
       device: "{{ switch }}",
       stylename: "{{ int.stylename }}",
-      url: "{{ int.get_absolute_url }}trace/",
+      detailUrl: "{{ int.get_absolute_url }}",
+      traceUrl: "{{ int.get_absolute_url }}trace/",
       name: "{{ int.name|escapejs }}",
       enabled: {% if int.enabled or int.is_port %}true{% else %}false{% endif %},
       connected: {% if int.connected_endpoints|length > 0 or int.is_port and int.link_peers|length > 0 %}true{% else %}false{% endif %},
@@ -161,13 +163,14 @@
 
         g.setAttribute("role", "link");
         g.style.cursor = "pointer";
-        g.addEventListener("click", function () { window.location.href = p.url; });
+        g.addEventListener("click", function () { window.location.href = p.detailUrl; });
         g.addEventListener("keydown", function (e) {
-          if (e.key === "Enter" || e.key === " ") { window.location.href = p.url; }
+          if (e.key === "Enter" || e.key === " ") { window.location.href = p.detailUrl; }
         });
         var title = p.name;
         var peers = p.connectedEndpoints.length > 0 ? p.connectedEndpoints : p.linkPeers;
         if (peers.length > 0) { title += "<hr>" + peers.join("<br>"); }
+        title += '<hr><a href="' + p.traceUrl + '">Trace</a>';
         g.setAttribute("data-bs-html", "true");
         g.setAttribute("data-bs-custom-class", "device-view-tooltip");
         g.setAttribute("title", title);
