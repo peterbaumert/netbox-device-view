@@ -64,25 +64,15 @@
 				{% else %}
 				bg-danger
 				{% endif %}"
-				title="{{ int.name }}
-				{% if int.connected_endpoints|length > 0 %}<hr>
-					{% for ce in int.connected_endpoints %}
-					{{ ce.device }} | {{ ce.name }}
-					{% endfor %}
-				{% elif int.link_peers|length > 0 %}<hr>
-					{% for lp in int.link_peers %}
-					{% if lp.device %}
-					{{ lp.device }} | {{ lp.name }}
-					{% elif lp.circuit %}
-					{{ lp }}
-					{% endif %}
-					{% endfor %}
-				{% endif %}
-				<hr><a href='{{int.get_absolute_url}}trace/'>Trace</a>
-				"
+				data-bs-title="{{ int.name }}{% if int.connected_endpoints|length > 0 %}<hr>{% for ce in int.connected_endpoints %}{{ ce.device }} | {{ ce.name }}{% if not forloop.last %}<br>{% endif %}{% endfor %}{% elif int.link_peers|length > 0 %}<hr>{% for lp in int.link_peers %}{% if lp.device %}{{ lp.device }} | {{ lp.name }}{% elif lp.circuit %}{{ lp }}{% endif %}{% if not forloop.last %}<br>{% endif %}{% endfor %}{% endif %}"
+				data-bs-content="<a href='{{int.get_absolute_url}}trace/'>Trace</a>"
 				style="grid-area: {{ int.stylename }}{% if cable_colors == 'on' and int.cable.color != '' %}; background-color: #{{ int.cable.color }}{% endif %}"
-				data-bs-toggle="tooltip"
+				data-bs-toggle="popover"
+				data-bs-trigger="hover focus"
+				data-bs-placement="top"
 				data-bs-html="true"
+				data-bs-container="body"
+				data-bs-delay='{"show":200,"hide":300}'
 				data-bs-custom-class="device-view-tooltip"
 			>
 				{% if int.enabled and int.connected_endpoints|length > 0  or int.is_port and int.link_peers|length > 0 %}
@@ -167,19 +157,22 @@
         g.addEventListener("keydown", function (e) {
           if (e.key === "Enter" || e.key === " ") { window.location.href = p.detailUrl; }
         });
-        var title = p.name;
+        var popTitle = p.name;
         var peers = p.connectedEndpoints.length > 0 ? p.connectedEndpoints : p.linkPeers;
-        if (peers.length > 0) { title += "<hr>" + peers.join("<br>"); }
-        title += '<hr><a href="' + p.traceUrl + '">Trace</a>';
+        if (peers.length > 0) { popTitle += "<hr>" + peers.join("<br>"); }
+        var popContent = '<a href="' + p.traceUrl + '">Trace</a>';
+        g.setAttribute("data-bs-toggle", "popover");
+        g.setAttribute("data-bs-trigger", "hover focus");
+        g.setAttribute("data-bs-placement", "top");
         g.setAttribute("data-bs-html", "true");
+        g.setAttribute("data-bs-container", "body");
         g.setAttribute("data-bs-custom-class", "device-view-tooltip");
-        g.setAttribute("title", title);
+        g.setAttribute("data-bs-title", popTitle);
+        g.setAttribute("data-bs-content", popContent);
         var svgTitle = g.querySelector("title");
         if (svgTitle) svgTitle.textContent = p.name;
-        if (typeof Tooltip !== "undefined") {
-          var tip = new Tooltip(g, { trigger: "manual", html: true, container: "body" });
-          g.addEventListener("pointerenter", function () { tip.show(); });
-          g.addEventListener("pointerleave", function () { tip.hide(); });
+        if (typeof bootstrap !== "undefined" && bootstrap.Popover) {
+          new bootstrap.Popover(g, { trigger: "hover focus", html: true, container: "body", delay: { show: 200, hide: 300 } });
         }
       });
     });
