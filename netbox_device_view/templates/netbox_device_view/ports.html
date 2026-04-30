@@ -91,6 +91,45 @@
 	</div>
 </div>
 
+<script>
+// Shared popover helper — keeps popover open when cursor moves into it.
+// Bootstrap 5 hover trigger closes on mouseleave of the trigger element
+// before mouseenter on the popover fires. We use trigger:"manual" and
+// wire both elements ourselves so the popover stays open over either one.
+function dvInitPopover(el, opts) {
+  if (typeof Popover === "undefined") return;
+  var pop = new Popover(el, {
+    trigger: "manual",
+    html: true,
+    container: "body",
+    placement: "top",
+    customClass: "device-view-tooltip",
+    title: opts.title || "",
+    content: opts.content || ""
+  });
+  var hideTimer = null;
+  function scheduleHide() {
+    hideTimer = setTimeout(function () { pop.hide(); }, 300);
+  }
+  function cancelHide() {
+    clearTimeout(hideTimer);
+  }
+  el.addEventListener("mouseenter", function () { cancelHide(); pop.show(); });
+  el.addEventListener("mouseleave", scheduleHide);
+  el.addEventListener("shown.bs.popover", function () {
+    var tip = Popover.getInstance(el) && Popover.getInstance(el)._tip;
+    if (!tip) {
+      // fallback: grab the most recently appended popover in body
+      var popovers = document.querySelectorAll(".popover");
+      tip = popovers[popovers.length - 1];
+    }
+    if (tip) {
+      tip.addEventListener("mouseenter", cancelHide);
+      tip.addEventListener("mouseleave", scheduleHide);
+    }
+  });
+}
+</script>
 {% if use_svg %}
 {# ── SVG interactivity script ── #}
 <script>
@@ -172,7 +211,7 @@
         var svgTitle = g.querySelector("title");
         if (svgTitle) svgTitle.textContent = p.name;
         if (typeof Popover !== "undefined") {
-          new Popover(g, { trigger: "hover focus", html: true, container: "body", delay: { show: 200, hide: 300 } });
+          dvInitPopover(g, { title: popTitle, content: popContent });
         }
       });
     });
@@ -188,7 +227,10 @@
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   document.querySelectorAll('.device-view-port[data-bs-toggle="popover"]').forEach(function (el) {
-    new Popover(el, { trigger: "hover focus", html: true, container: "body", delay: { show: 200, hide: 300 } });
+    dvInitPopover(el, {
+      title: el.getAttribute("data-bs-title"),
+      content: el.getAttribute("data-bs-content")
+    });
   });
 });
 </script>
