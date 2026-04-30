@@ -176,8 +176,8 @@
         g.setAttribute("data-bs-content", popContent);
         var svgTitle = g.querySelector("title");
         if (svgTitle) svgTitle.textContent = p.name;
-        if (typeof bootstrap !== "undefined" && bootstrap.Popover) {
-          new bootstrap.Popover(g, { trigger: "hover focus", html: true, container: "body", delay: { show: 200, hide: 300 } });
+        if (typeof Popover !== "undefined") {
+          new Popover(g, { trigger: "hover focus", html: true, container: "body", delay: { show: 200, hide: 300 } });
         }
       });
     });
@@ -203,4 +203,13 @@
 		</form>
 	</div>
 </div>
+{% if not use_svg %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  document.querySelectorAll('.device-view-port[data-bs-toggle="popover"]').forEach(function (el) {
+    new Popover(el, { trigger: "hover focus", html: true, container: "body", delay: { show: 200, hide: 300 } });
+  });
+});
+</script>
+{% endif %}
 {% endblock %}
