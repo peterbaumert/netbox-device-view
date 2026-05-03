@@ -111,13 +111,15 @@ function dvInitPopover(el, opts) {
     content: opts.content || ""
   });
   var hideTimer = null;
+  var showTimer = null;
   function scheduleHide() {
-    hideTimer = setTimeout(function () { pop.hide(); }, 300);
+    clearTimeout(showTimer);
+    hideTimer = setTimeout(function () { pop.hide(); }, 500);
   }
   function cancelHide() {
     clearTimeout(hideTimer);
   }
-  el.addEventListener("mouseenter", function () { cancelHide(); pop.show(); });
+  el.addEventListener("mouseenter", function () { cancelHide(); showTimer = setTimeout(function () { pop.show(); }, 500); });
   el.addEventListener("mouseleave", scheduleHide);
   el.addEventListener("shown.bs.popover", function () {
     var tip = Popover.getInstance(el) && Popover.getInstance(el)._tip;
