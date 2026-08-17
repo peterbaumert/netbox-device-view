@@ -1,7 +1,8 @@
-from netbox.plugins import PluginTemplateExtension
-from .utils import device_height_px, prepare, prepare_svg
-from django.conf import settings
 from dcim.models import Device
+from django.conf import settings
+from netbox.plugins import PluginTemplateExtension
+
+from .utils import device_height_px, prepare, prepare_svg
 
 
 class Ports(PluginTemplateExtension):

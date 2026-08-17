@@ -38,7 +38,6 @@ from __future__ import annotations
 
 import re
 import textwrap
-from typing import Optional
 
 import yaml
 from django.core.management.base import BaseCommand, CommandError
@@ -122,7 +121,7 @@ def _grid_to_elements(
     grid: list[list[str]],
     canvas_rows: int,
     canvas_cols: int,
-    col_span_override: Optional[int] = None,
+    col_span_override: int | None = None,
 ) -> list[dict]:
     """
     Convert a 2D token grid to a flat list of element dicts.
@@ -420,7 +419,7 @@ class Command(BaseCommand):
             try:
                 layout_dict = _css_to_yaml_dict(dv.grid_template_area)
                 yaml_text = _dump_yaml(layout_dict)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - continue on per-device errors
                 self.stderr.write(
                     self.style.ERROR(f"  ERROR parsing CSS for {model_name!r}: {exc}")
                 )

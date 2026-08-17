@@ -37,7 +37,7 @@ from .parser import LayoutParseError, parse, validate
 from .renderers.css_grid import render as _render_css
 from .renderers.svg import render as _render_svg
 
-__all__ = [
+__all__ = [  # noqa: RUF022 - grouped by category, not alphabetical, intentionally
     # Model
     "NormalizedLayout",
     "LayoutView",

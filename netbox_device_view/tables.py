@@ -1,6 +1,5 @@
 import django_tables2 as tables
 from django.utils.html import mark_safe
-
 from netbox.tables import NetBoxTable, columns
 
 from .models import DeviceView

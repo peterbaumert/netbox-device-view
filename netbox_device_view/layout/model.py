@@ -14,7 +14,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
 
 
 class ElementKind(str, Enum):
@@ -62,14 +61,14 @@ class PlacedElement:
     col_span: int = 1
 
     # Optional display label (for label elements and future SVG tooltips)
-    label: Optional[str] = None
+    label: str | None = None
 
     # Extra CSS class names to attach (for styling hooks)
     css_classes: list[str] = field(default_factory=list)
 
     # Variant context: if set, this element only appears when the named
     # module is installed (mirrors .deviceview.module<Name>.area in CSS)
-    variant: Optional[str] = None
+    variant: str | None = None
 
     @property
     def is_port(self) -> bool:
@@ -94,7 +93,7 @@ class CanvasConfig:
     columns: int = 32
     rows: int = 2
     cell_size: int = 20  # pixels — for SVG renderer
-    background: Optional[str] = None  # CSS color string
+    background: str | None = None  # CSS color string
 
 
 @dataclass
@@ -114,7 +113,7 @@ class LayoutView:
     variants: dict[str, list[PlacedElement]] = field(default_factory=dict)
 
     def elements_for_variant(
-        self, variant_name: Optional[str] = None
+        self, variant_name: str | None = None
     ) -> list[PlacedElement]:
         """
         Return the full element list for a given module variant.
@@ -150,11 +149,11 @@ class NormalizedLayout:
     views: dict[str, LayoutView] = field(default_factory=dict)
 
     @property
-    def front(self) -> Optional[LayoutView]:
+    def front(self) -> LayoutView | None:
         return self.views.get(Face.FRONT.value) or self.views.get("front")
 
     @property
-    def rear(self) -> Optional[LayoutView]:
+    def rear(self) -> LayoutView | None:
         return self.views.get(Face.REAR.value) or self.views.get("rear")
 
     def has_separate_faces(self) -> bool:

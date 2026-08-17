@@ -1,4 +1,5 @@
 from netbox.api.serializers import NetBoxModelSerializer
+
 from ..models import DeviceView
 
 

@@ -9,8 +9,7 @@ those calls around the DB lookup.
 import types
 from unittest.mock import MagicMock, patch
 
-
-from netbox_device_view.utils import process_interfaces, process_ports, prepare
+from netbox_device_view.utils import prepare, process_interfaces, process_ports
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -237,7 +236,7 @@ class TestPrepare:
         MockCP.objects.filter.return_value = []
         dev = self._make_device()
 
-        dv, modules, ports_chassis, device_view = prepare(dev)
+        dv, modules, _ports_chassis, device_view = prepare(dev)
 
         assert dv == {1: ".area { }"}
         assert 1 in modules
@@ -257,7 +256,7 @@ class TestPrepare:
             make_iface("GigabitEthernet0/0/2"),
         ]
 
-        dv, modules, ports_chassis, device_view = prepare(dev)
+        _dv, _modules, ports_chassis, _device_view = prepare(dev)
 
         assert "test-switch" in ports_chassis
         stylenames = [i.stylename for i in ports_chassis["test-switch"]]
@@ -278,7 +277,7 @@ class TestPrepare:
             make_iface("GigabitEthernet0/0/1", iface_type="1000base-t"),
         ]
 
-        dv, modules, ports_chassis, device_view = prepare(dev)
+        _dv, _modules, ports_chassis, _device_view = prepare(dev)
 
         items = ports_chassis.get("test-switch", [])
         assert len(items) == 1
@@ -316,7 +315,7 @@ class TestPrepare:
             member2,
         ]
 
-        dv, modules, ports_chassis, device_view = prepare(dev)
+        dv, _modules, _ports_chassis, _device_view = prepare(dev)
 
         assert ".area.d1" in dv[1]
         assert ".area.d2" in dv[2]

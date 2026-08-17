@@ -1,7 +1,5 @@
 import re
 
-from django.core.exceptions import ObjectDoesNotExist
-
 from dcim.models import (
     ConsolePort,
     ConsolePortTemplate,
@@ -9,10 +7,13 @@ from dcim.models import (
     InterfaceTemplate,
     RearPortTemplate,
 )
+from django.core.exceptions import ObjectDoesNotExist
 
 from .layout import (
     get_css_for_device_view,
     get_svg_for_device_view,
+)
+from .layout import (
     parse as parse_layout,
 )
 from .models import DeviceView

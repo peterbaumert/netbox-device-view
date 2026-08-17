@@ -71,7 +71,6 @@ with no label and no interactivity.
 from __future__ import annotations
 
 import html
-from typing import Optional
 
 from ..model import (
     CanvasConfig,
@@ -101,7 +100,7 @@ COLOUR_STANDALONE_TEXT = "#333"  # text for label elements
 # ── Public API ─────────────────────────────────────────────────────────────────
 
 
-def render(layout: NormalizedLayout, variant_name: Optional[str] = None) -> str:
+def render(layout: NormalizedLayout, variant_name: str | None = None) -> str:
     """
     Render a NormalizedLayout to one or more SVG strings.
 
@@ -145,7 +144,7 @@ def render(layout: NormalizedLayout, variant_name: Optional[str] = None) -> str:
 def render_view_svg(
     layout: NormalizedLayout,
     face: str = "front",
-    variant_name: Optional[str] = None,
+    variant_name: str | None = None,
 ) -> str:
     """
     Render only one face of a layout to SVG.
@@ -207,8 +206,8 @@ def _element_dims(el: PlacedElement, canvas: CanvasConfig) -> tuple[int, int]:
 
 def _render_view(
     view: LayoutView,
-    data_face: Optional[str],
-    variant_name: Optional[str],
+    data_face: str | None,
+    variant_name: str | None,
 ) -> str:
     """Render a single LayoutView to an ``<svg>`` element string."""
     canvas = view.canvas
@@ -220,12 +219,14 @@ def _render_view(
     face_class = f" dv-face-{data_face}" if data_face else ""
 
     lines: list[str] = [
-        f'<svg xmlns="http://www.w3.org/2000/svg"'
-        f' class="dv-svg{face_class}"'
-        f' width="{width}" height="{height}"'
-        f' viewBox="0 0 {width} {height}"'
-        f"{face_attr}"
-        f' role="img" aria-label="Device layout{" — " + data_face if data_face else ""}">',
+        (
+            f'<svg xmlns="http://www.w3.org/2000/svg"'
+            f' class="dv-svg{face_class}"'
+            f' width="{width}" height="{height}"'
+            f' viewBox="0 0 {width} {height}"'
+            f"{face_attr}"
+            f' role="img" aria-label="Device layout{" — " + data_face if data_face else ""}">'
+        ),
         "  <defs>",
         '    <pattern id="dv-nocolor-pattern" patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(-45)">',
         '      <rect width="5" height="10" fill="grey"/>',
@@ -312,12 +313,16 @@ def _render_port_element(
     cy = y + h // 2
 
     lines = [
-        f'{pad}<g class="{g_class}" data-stylename="{safe_key}"'
-        f' tabindex="0" role="button" aria-label="{safe_key}">',
+        (
+            f'{pad}<g class="{g_class}" data-stylename="{safe_key}"'
+            f' tabindex="0" role="button" aria-label="{safe_key}">'
+        ),
         f"{pad}  <title>{safe_key}</title>",
-        f'{pad}  <rect class="dv-port-rect" x="{x}" y="{y}" width="{w}" height="{h}"'
-        f' rx="{CORNER_RADIUS}" ry="{CORNER_RADIUS}"'
-        f' fill="{COLOUR_PORT_DEFAULT}" stroke="{COLOUR_BORDER}" stroke-width="1"/>',
+        (
+            f'{pad}  <rect class="dv-port-rect" x="{x}" y="{y}" width="{w}" height="{h}"'
+            f' rx="{CORNER_RADIUS}" ry="{CORNER_RADIUS}"'
+            f' fill="{COLOUR_PORT_DEFAULT}" stroke="{COLOUR_BORDER}" stroke-width="1"/>'
+        ),
     ]
 
     # Only show text if the cell is wide or tall enough to fit it
@@ -372,9 +377,11 @@ def _render_label_element(
     cx = x + w // 2
     cy = y + h // 2
     return [
-        f'{pad}<text class="dv-label" x="{cx}" y="{cy}"'
-        f' text-anchor="middle" dominant-baseline="central"'
-        f' font-size="{LABEL_FONT_SIZE}" fill="{COLOUR_STANDALONE_TEXT}">{text}</text>',
+        (
+            f'{pad}<text class="dv-label" x="{cx}" y="{cy}"'
+            f' text-anchor="middle" dominant-baseline="central"'
+            f' font-size="{LABEL_FONT_SIZE}" fill="{COLOUR_STANDALONE_TEXT}">{text}</text>'
+        ),
     ]
 
 

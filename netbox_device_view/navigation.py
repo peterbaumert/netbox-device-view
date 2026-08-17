@@ -1,5 +1,5 @@
-from netbox.plugins import PluginMenuButton, PluginMenuItem
 from netbox.choices import ButtonColorChoices
+from netbox.plugins import PluginMenuButton, PluginMenuItem
 
 deviceview_buttons = [
     PluginMenuButton(

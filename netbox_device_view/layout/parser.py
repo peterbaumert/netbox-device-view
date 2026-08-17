@@ -81,7 +81,7 @@ A view can copy another view's row definitions and add overrides:
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 import yaml
 
@@ -217,8 +217,8 @@ def _parse_face(name: str) -> Face:
 
 def _parse_canvas(
     raw: Any,
-    global_bg: Optional[str] = None,
-    parent: Optional[CanvasConfig] = None,
+    global_bg: str | None = None,
+    parent: CanvasConfig | None = None,
 ) -> CanvasConfig:
     """Merge canvas config from raw dict, inheriting from parent if given."""
     if not isinstance(raw, dict):
@@ -239,7 +239,7 @@ def _compile_view(
     canvas: CanvasConfig,
     raw_views: dict[str, Any],
     global_canvas: CanvasConfig,
-    global_bg: Optional[str],
+    global_bg: str | None,
 ) -> LayoutView:
     """Compile a single view, handling copy_from."""
     if not isinstance(view_data, dict):
@@ -282,7 +282,7 @@ def _compile_rows(
     rows: list[Any],
     flat_elements: list[Any],
     canvas: CanvasConfig,
-    variant_name: Optional[str] = None,
+    variant_name: str | None = None,
 ) -> list[PlacedElement]:
     """
     Compile either a rows-based or flat elements-based definition into
@@ -298,7 +298,7 @@ def _compile_rows(
 def _compile_flat_elements(
     elements: list[Any],
     canvas: CanvasConfig,
-    variant_name: Optional[str],
+    variant_name: str | None,
 ) -> list[PlacedElement]:
     """Compile an explicit list of element dicts with at:/span: coordinates."""
     result: list[PlacedElement] = []
@@ -314,7 +314,7 @@ def _compile_flat_elements(
 def _compile_rows_definition(
     rows: list[Any],
     canvas: CanvasConfig,
-    variant_name: Optional[str],
+    variant_name: str | None,
 ) -> list[PlacedElement]:
     """
     Compile a rows-style definition.
@@ -390,7 +390,7 @@ def _compile_explicit_row(
     row_cursors: dict[int, int],
     current_row: int,
     canvas: CanvasConfig,
-    variant_name: Optional[str],
+    variant_name: str | None,
 ) -> tuple[list[PlacedElement], dict[int, int]]:
     """Place an explicit list of elements into ``current_row``."""
     result: list[PlacedElement] = []
@@ -427,7 +427,7 @@ def _expand_sequence(
     seq: Any,
     row_cursors: dict[int, int],
     canvas: CanvasConfig,
-    variant_name: Optional[str],
+    variant_name: str | None,
 ) -> tuple[list[PlacedElement], dict[int, int]]:
     """
     Expand a sequence definition into PlacedElement objects.
@@ -528,7 +528,7 @@ def _expand_group(
     group: Any,
     row_cursors: dict[int, int],
     canvas: CanvasConfig,
-    variant_name: Optional[str],
+    variant_name: str | None,
 ) -> tuple[list[PlacedElement], dict[int, int]]:
     """
     Expand a group of sections separated by spacers.
@@ -592,7 +592,7 @@ def _insert_filler(
     count: int,
     row_cursors: dict[int, int],
     canvas: CanvasConfig,
-    variant_name: Optional[str],
+    variant_name: str | None,
     prefix: str = "x",
 ) -> tuple[list[PlacedElement], dict[int, int]]:
     """Insert ``count`` filler elements spanning all active rows."""
@@ -633,7 +633,7 @@ def _insert_filler(
 def _expand_element(
     raw: dict[str, Any],
     canvas: CanvasConfig,
-    variant_name: Optional[str],
+    variant_name: str | None,
     default_row: int = 1,
     default_col: int = 1,
 ) -> list[PlacedElement]:

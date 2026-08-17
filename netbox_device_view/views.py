@@ -1,22 +1,22 @@
+from dcim.models import Device
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 from django.views import View
-
 from netbox.views import generic
-from dcim.models import Device
-from . import forms, models, tables
+from netbox.views.generic import BulkImportView
 from utilities.views import ViewTab, register_model_view
+
+from netbox_device_view.forms import DeviceViewImportForm
+
+from . import forms, models, tables
 from .utils import (
     device_height_px,
     get_stylenames_for_device_type,
     prepare,
     prepare_svg,
 )
-
-from netbox.views.generic import BulkImportView
-from netbox_device_view.forms import DeviceViewImportForm
 
 
 class DeviceViewView(generic.ObjectView):

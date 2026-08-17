@@ -1,8 +1,9 @@
-from netbox.forms import NetBoxModelForm, NetBoxModelImportForm
-from django.utils.translation import gettext_lazy as _
-from .models import DeviceView
 from dcim.models import DeviceType
+from django.utils.translation import gettext_lazy as _
+from netbox.forms import NetBoxModelForm, NetBoxModelImportForm
 from utilities.forms.fields import CSVModelChoiceField
+
+from .models import DeviceView
 
 
 class DeviceViewForm(NetBoxModelForm):

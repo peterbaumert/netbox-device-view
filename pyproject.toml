@@ -30,3 +30,6 @@ where = ["."]
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "netbox.settings"
 pythonpath = ["/opt/netbox/netbox", "."]
+
+[tool.ruff]
+extend-exclude = ["**/migrations/*.py"]
