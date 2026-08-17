@@ -5,9 +5,10 @@ on:
     branches: [main]
     paths:
       - "Dockerfile"
-      - "netbox_device_view/**"
+  release:
+    types: [published] # same trigger release.yml uses to publish to PyPI -- rebuild right after a new plugin version actually lands there
   schedule:
-    - cron: "0 2 * * 1" # Monday 02:00 UTC -- catches upstream NetBox stable releases even when nothing here changes
+    - cron: "0 2 * * 1" # Monday 02:00 UTC -- catches upstream NetBox stable releases even when nothing plugin-side changes
   workflow_dispatch: {}
 
 permissions:
