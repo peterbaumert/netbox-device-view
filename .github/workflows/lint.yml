@@ -8,4 +8,4 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: psf/black@stable
-      - uses: astral-sh/ruff-action@v4
+      - uses: astral-sh/ruff-action@v4.1.0
