@@ -8,6 +8,8 @@ system, cable/interface relationships, and Django URL routing — none of
 which can be exercised with SimpleNamespace mocks.
 """
 
+import secrets
+
 from core.models import ObjectType
 from dcim.models import (
     Cable,
@@ -28,7 +30,7 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
-from users.constants import TOKEN_PREFIX
+from users.choices import TokenVersionChoices
 from users.models import ObjectPermission, Token, User
 
 from netbox_device_view.models import DeviceView, RenderMode
@@ -109,15 +111,15 @@ class RenderedLayoutTestBase(TestCase):
         perm.object_types.add(object_type)
 
     def _authenticate(self):
-        # NetBox 4.6+ tokens default to v2 (peppered/digest) format, where
-        # `.key` alone is only a short public identifier, not the bearer
-        # secret — `Authorization: Token <key>` (v1 scheme) silently fails
-        # auth for a v2 token. Use the real v2 Bearer scheme, matching
-        # NetBox's own utilities.testing.api.APITestCase.setUp().
-        token = Token.objects.create(user=self.user)
-        self.client.credentials(
-            HTTP_AUTHORIZATION=f"Bearer {TOKEN_PREFIX}{token.key}.{token.token}"
-        )
+        # Explicit v1 token: the default (v2, peppered/digest) format
+        # requires API_TOKEN_PEPPERS to be configured, which neither this
+        # repo's CI workflow (test.yml) nor a bare devcontainer sets up —
+        # v1 tokens need no such server-side config and authenticate with
+        # the classic `Authorization: Token <key>` header.
+        plaintext = secrets.token_hex(20)
+        token = Token(user=self.user, version=TokenVersionChoices.V1, token=plaintext)
+        token.save()
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {plaintext}")
 
     def _url(self, device=None):
         return reverse(
