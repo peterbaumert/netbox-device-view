@@ -14,7 +14,7 @@ If either condition is not met, the plugin silently falls back to CSS rendering.
 Set **Render Mode → SVG** on the DeviceView edit page. The field is available at *Plugins → Device Views → [edit]*.
 
 !!! note
-    SVG mode is not supported for Virtual Chassis devices — they always use CSS rendering.
+    Virtual Chassis devices render as one SVG panel per member (in rack order), each using that member's own device type's DeviceView — see [Virtual Chassis](virtual-chassis.md). SVG mode requires *every* member's device type to have a YAML-layout DeviceView; if any member is missing one, the whole device falls back to CSS.
 
 ---
 
@@ -127,5 +127,5 @@ Use `cell_size: 0` in the YAML canvas to enable auto sizing for patch panels.
 
 ## Limitations
 
-- Virtual Chassis devices fall back to CSS rendering — SVG mode for VC is not yet supported
+- Virtual Chassis SVG rendering requires every member's device type to have an SVG-capable DeviceView (see above) — one missing member falls the whole device back to CSS
 - `cell_size: 0` (patch-panel auto sizing) uses `DEFAULT_CELL = 32 px` in SVG mode since CSS `auto` sizing has no SVG equivalent

@@ -53,6 +53,7 @@ nav:
     - YAML Layout: layout-yaml.md
     - CSS Layout (legacy): layout-css.md
   - SVG Renderer: svg-renderer.md
+  - Rendered Layout API: rendered-layout-api.md
   - Virtual Chassis: virtual-chassis.md
   - Troubleshooting: troubleshooting.md
   - yaml-layout-schema.md

@@ -1,6 +1,13 @@
 name: Test
 
-on: [push, pull_request]
+# push is restricted to main (post-merge) rather than every branch — a
+# feature branch with an open PR would otherwise run this workflow twice
+# per commit (once for push, once for pull_request's synchronize event).
+# pull_request has no branch filter, so every PR still gets full coverage.
+on:
+  push:
+    branches: [main]
+  pull_request: {}
 
 jobs:
   test:
@@ -66,6 +73,10 @@ jobs:
           cat > /etc/netbox/config/extra.py << 'EOF'
           PLUGINS = ['netbox_device_view']
           PLUGINS_CONFIG = {'netbox_device_view': {'show_on_device_tab': False}}
+          # v2 API tokens (the non-deprecated format — v1 is deprecated as
+          # of NetBox 4.6, removal planned for v5.0) require this; CI-only
+          # placeholder value, not a real secret.
+          API_TOKEN_PEPPERS = {1: 'ci-test-pepper-not-a-secret-0123456789abcdef0123456789ab'}
           EOF
 
       - name: Install plugin and test dependencies
