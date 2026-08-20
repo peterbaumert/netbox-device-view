@@ -8,8 +8,6 @@ system, cable/interface relationships, and Django URL routing — none of
 which can be exercised with SimpleNamespace mocks.
 """
 
-import secrets
-
 from core.models import ObjectType
 from dcim.models import (
     Cable,
@@ -30,7 +28,7 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
-from users.choices import TokenVersionChoices
+from users.constants import TOKEN_PREFIX
 from users.models import ObjectPermission, Token, User
 
 from netbox_device_view.models import DeviceView, RenderMode
@@ -111,15 +109,16 @@ class RenderedLayoutTestBase(TestCase):
         perm.object_types.add(object_type)
 
     def _authenticate(self):
-        # Explicit v1 token: the default (v2, peppered/digest) format
-        # requires API_TOKEN_PEPPERS to be configured, which neither this
-        # repo's CI workflow (test.yml) nor a bare devcontainer sets up —
-        # v1 tokens need no such server-side config and authenticate with
-        # the classic `Authorization: Token <key>` header.
-        plaintext = secrets.token_hex(20)
-        token = Token(user=self.user, version=TokenVersionChoices.V1, token=plaintext)
-        token.save()
-        self.client.credentials(HTTP_AUTHORIZATION=f"Token {plaintext}")
+        # v2 (the non-deprecated token format — v1 is deprecated as of
+        # NetBox 4.6, removal planned for v5.0) needs API_TOKEN_PEPPERS
+        # configured server-side; both this repo's devcontainer
+        # (.devcontainer/extra.py) and CI (test.yml) set a placeholder
+        # value for it. Matches NetBox's own
+        # utilities.testing.api.APITestCase.setUp() convention.
+        token = Token.objects.create(user=self.user)
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN_PREFIX}{token.key}.{token.token}"
+        )
 
     def _url(self, device=None):
         return reverse(

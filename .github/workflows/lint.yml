@@ -1,6 +1,10 @@
 name: Lint
 
-on: [push, pull_request]
+# See test.yml for why push is restricted to main.
+on:
+  push:
+    branches: [main]
+  pull_request: {}
 
 jobs:
   lint:
