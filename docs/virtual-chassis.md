@@ -36,6 +36,6 @@ This happens automatically — you do not need to write scoped CSS yourself. The
 
 ## Limitations
 
-- **SVG mode is not supported for Virtual Chassis devices.** They always fall back to CSS rendering regardless of the Render Mode setting.
+- **SVG mode works for Virtual Chassis devices** when every member's device type has an SVG-capable DeviceView (Render Mode → SVG, non-empty YAML Layout) — one panel is rendered per member, in rack order, using that member's own DeviceView.
 - Each VC member must have its own DeviceView configured for its device type.
-- If any member is missing a DeviceView, that member's panel is skipped silently.
+- If **any** member is missing a DeviceView (for either CSS or SVG rendering), the whole device's view fails to render — there is no partial/per-member fallback.

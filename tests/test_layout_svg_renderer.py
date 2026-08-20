@@ -24,12 +24,12 @@ from netbox_device_view.layout.renderers.svg import (
     GAP,
     PADDING,
     _abbreviate,
-    _cell_size,
-    _cell_xy,
-    _element_dims,
-    _svg_dims,
+    cell_size,
+    cell_xy,
+    element_dims,
     render,
     render_view_svg,
+    svg_dims,
 )
 
 # ---------------------------------------------------------------------------
@@ -62,15 +62,15 @@ def _attr(svg: str, attr: str) -> list[str]:
 class TestCoordinateHelpers:
     def test_cell_size_normal(self):
         canvas = CanvasConfig(cell_size=20)
-        assert _cell_size(canvas) == 20
+        assert cell_size(canvas) == 20
 
     def test_cell_size_zero_returns_default(self):
         canvas = CanvasConfig(cell_size=0)
-        assert _cell_size(canvas) == DEFAULT_CELL
+        assert cell_size(canvas) == DEFAULT_CELL
 
     def test_svg_dims_standard(self):
         canvas = CanvasConfig(columns=4, rows=2, cell_size=20)
-        w, h = _svg_dims(canvas)
+        w, h = svg_dims(canvas)
         expected_w = 4 * 20 + 3 * GAP + 2 * PADDING
         expected_h = 2 * 20 + 1 * GAP + 2 * PADDING
         assert w == expected_w
@@ -78,7 +78,7 @@ class TestCoordinateHelpers:
 
     def test_svg_dims_single_row(self):
         canvas = CanvasConfig(columns=6, rows=1, cell_size=20)
-        w, h = _svg_dims(canvas)
+        w, h = svg_dims(canvas)
         expected_w = 6 * 20 + 5 * GAP + 2 * PADDING
         expected_h = 1 * 20 + 0 * GAP + 2 * PADDING
         assert w == expected_w
@@ -86,19 +86,19 @@ class TestCoordinateHelpers:
 
     def test_cell_xy_first_cell(self):
         canvas = CanvasConfig(columns=4, rows=2, cell_size=20)
-        x, y = _cell_xy(1, 1, canvas)
+        x, y = cell_xy(1, 1, canvas)
         assert x == PADDING
         assert y == PADDING
 
     def test_cell_xy_second_col(self):
         canvas = CanvasConfig(columns=4, rows=2, cell_size=20)
-        x, y = _cell_xy(1, 2, canvas)
+        x, y = cell_xy(1, 2, canvas)
         assert x == PADDING + 20 + GAP
         assert y == PADDING
 
     def test_cell_xy_second_row(self):
         canvas = CanvasConfig(columns=4, rows=2, cell_size=20)
-        x, y = _cell_xy(2, 1, canvas)
+        x, y = cell_xy(2, 1, canvas)
         assert x == PADDING
         assert y == PADDING + 20 + GAP
 
@@ -107,7 +107,7 @@ class TestCoordinateHelpers:
         el = PlacedElement(
             kind=ElementKind.PORT, key="p1", row=1, col=1, row_span=1, col_span=1
         )
-        w, h = _element_dims(el, canvas)
+        w, h = element_dims(el, canvas)
         assert w == 20
         assert h == 20
 
@@ -116,7 +116,7 @@ class TestCoordinateHelpers:
         el = PlacedElement(
             kind=ElementKind.PORT, key="p1", row=1, col=1, row_span=2, col_span=3
         )
-        w, h = _element_dims(el, canvas)
+        w, h = element_dims(el, canvas)
         # 3 cols: 3*20 + 2*GAP
         assert w == 3 * 20 + 2 * GAP
         # 2 rows: 2*20 + 1*GAP

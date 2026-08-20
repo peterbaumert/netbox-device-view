@@ -141,6 +141,89 @@ def render(layout: NormalizedLayout, variant_name: str | None = None) -> str:
     return "\n".join(parts)
 
 
+def render_api_view(
+    view: LayoutView,
+    fills: dict[str, str] | None = None,
+    variant_name: str | None = None,
+) -> tuple[str, list[dict]]:
+    """
+    Render a single LayoutView to a flutter_svg-safe SVG string, alongside
+    hotspot geometry for every port-like element.
+
+    Used by the rendered-layout API endpoint (netbox_device_view.api.
+    rendered_layout), not the web UI. Unlike ``_render_view``:
+
+    - Every port's fill colour is baked in as an explicit ``fill``
+      attribute from ``fills`` (falling back to COLOUR_PORT_DEFAULT when a
+      key is absent), since API clients (e.g. the netbox-companion mobile
+      app's flutter_svg renderer) cannot resolve CSS class selectors the
+      way a browser can.
+    - No ``<text>`` is emitted. flutter_svg's ``dominant-baseline``/``dy``
+      support is unreliable for real vertical centring (see
+      netbox-companion's rack_elevation_svg.dart, which works around the
+      same limitation for NetBox's own rack elevation SVGs). Labels are
+      returned as hotspot geometry instead so the API client can render
+      them as native text overlays.
+    - No interactivity attributes (title/tabindex/role/data-bs-*) — those
+      are a browser/Bootstrap concern with no API client equivalent.
+
+    Returns ``(svg_markup, hotspots)`` where each hotspot is
+    ``{"key": stylename, "x": int, "y": int, "width": int, "height": int}``
+    for every element where ``PlacedElement.is_port`` is True (ports,
+    interfaces, console ports — matches the real component set this
+    plugin currently collects; see utils.prepare_svg). Spacer/blank/label
+    elements are skipped entirely — no fill, no hotspot. The caller merges
+    these with real NetBox component data (name, object type/id,
+    connection state, cable color, peers, ...) keyed by the same
+    stylename.
+    """
+    fills = fills or {}
+    canvas = view.canvas
+    width, height = svg_dims(canvas)
+    bg = canvas.background or COLOUR_BACKGROUND
+
+    lines: list[str] = [
+        (
+            f'<svg xmlns="http://www.w3.org/2000/svg"'
+            f' width="{width}" height="{height}"'
+            f' viewBox="0 0 {width} {height}" role="img">'
+        ),
+        "  <defs>",
+        (
+            '    <pattern id="dv-nocolor-pattern" patternUnits="userSpaceOnUse"'
+            ' width="10" height="10" patternTransform="rotate(-45)">'
+        ),
+        '      <rect width="5" height="10" fill="grey"/>',
+        '      <rect x="5" width="5" height="10" fill="black"/>',
+        "    </pattern>",
+        "  </defs>",
+        (
+            f'  <rect x="0" y="0" width="{width}" height="{height}"'
+            f' rx="5" ry="5" fill="{html.escape(bg)}" stroke="#999" stroke-width="1"/>'
+        ),
+    ]
+
+    hotspots: list[dict] = []
+    elements = view.elements_for_variant(variant_name)
+    for el in sorted(elements, key=lambda e: (e.row, e.col)):
+        if not el.is_port:
+            continue  # spacer / blank / label — structural or decorative only
+
+        x, y = cell_xy(el.row, el.col, canvas)
+        w, h = element_dims(el, canvas)
+        fill = html.escape(fills.get(el.key, COLOUR_PORT_DEFAULT), quote=True)
+
+        lines.append(
+            f'  <rect x="{x}" y="{y}" width="{w}" height="{h}"'
+            f' rx="{CORNER_RADIUS}" ry="{CORNER_RADIUS}"'
+            f' fill="{fill}" stroke="{COLOUR_BORDER}" stroke-width="1"/>'
+        )
+        hotspots.append({"key": el.key, "x": x, "y": y, "width": w, "height": h})
+
+    lines.append("</svg>")
+    return "\n".join(lines), hotspots
+
+
 def render_view_svg(
     layout: NormalizedLayout,
     face: str = "front",
@@ -172,30 +255,30 @@ def render_view_svg(
 # ── Coordinate helpers ─────────────────────────────────────────────────────────
 
 
-def _cell_size(canvas: CanvasConfig) -> int:
+def cell_size(canvas: CanvasConfig) -> int:
     """Return effective cell size, replacing the patch-panel sentinel (0) with DEFAULT_CELL."""
     return canvas.cell_size if canvas.cell_size > 0 else DEFAULT_CELL
 
 
-def _svg_dims(canvas: CanvasConfig) -> tuple[int, int]:
+def svg_dims(canvas: CanvasConfig) -> tuple[int, int]:
     """Return (total_width, total_height) for the SVG viewport."""
-    cs = _cell_size(canvas)
+    cs = cell_size(canvas)
     w = canvas.columns * cs + max(0, canvas.columns - 1) * GAP + 2 * PADDING
     h = canvas.rows * cs + max(0, canvas.rows - 1) * GAP + 2 * PADDING
     return w, h
 
 
-def _cell_xy(row: int, col: int, canvas: CanvasConfig) -> tuple[int, int]:
+def cell_xy(row: int, col: int, canvas: CanvasConfig) -> tuple[int, int]:
     """Convert 1-based (row, col) grid coords to SVG pixel coords (top-left of cell)."""
-    cs = _cell_size(canvas)
+    cs = cell_size(canvas)
     x = PADDING + (col - 1) * (cs + GAP)
     y = PADDING + (row - 1) * (cs + GAP)
     return x, y
 
 
-def _element_dims(el: PlacedElement, canvas: CanvasConfig) -> tuple[int, int]:
+def element_dims(el: PlacedElement, canvas: CanvasConfig) -> tuple[int, int]:
     """Return (width, height) in pixels for an element, including its span."""
-    cs = _cell_size(canvas)
+    cs = cell_size(canvas)
     w = el.col_span * cs + max(0, el.col_span - 1) * GAP
     h = el.row_span * cs + max(0, el.row_span - 1) * GAP
     return w, h
@@ -211,7 +294,7 @@ def _render_view(
 ) -> str:
     """Render a single LayoutView to an ``<svg>`` element string."""
     canvas = view.canvas
-    width, height = _svg_dims(canvas)
+    width, height = svg_dims(canvas)
     bg = canvas.background or COLOUR_BACKGROUND
 
     face_attr = f' data-face="{data_face}"' if data_face else ""
@@ -268,9 +351,9 @@ def _render_element(
     el: PlacedElement, canvas: CanvasConfig, pad: str = "  "
 ) -> list[str]:
     """Render a single PlacedElement to SVG lines."""
-    x, y = _cell_xy(el.row, el.col, canvas)
-    w, h = _element_dims(el, canvas)
-    cs = _cell_size(canvas)
+    x, y = cell_xy(el.row, el.col, canvas)
+    w, h = element_dims(el, canvas)
+    cs = cell_size(canvas)
 
     if el.kind == ElementKind.LABEL:
         return _render_label_element(el, x, y, w, h, pad)
