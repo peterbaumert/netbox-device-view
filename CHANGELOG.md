@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/peterbaumert/netbox-device-view/compare/v0.3.0...v0.4.0) (2026-08-20)
+
+
+### Features
+
+* add versioned rendered-layout API endpoint for API clients ([#66](https://github.com/peterbaumert/netbox-device-view/issues/66)) ([e007562](https://github.com/peterbaumert/netbox-device-view/commit/e007562b78f2049089136b52fbbb9430f8b92b6f))
+
+
+### Bug Fixes
+
+* **ci:** pin ruff-action to v4.1.0 (no floating v4 tag exists yet) ([2c849a0](https://github.com/peterbaumert/netbox-device-view/commit/2c849a0c7e872f10ab1025c128e9e42df063618d))
+* **lint:** resolve all ruff violations; exclude migrations from linting ([4c69e97](https://github.com/peterbaumert/netbox-device-view/commit/4c69e9720a9065393b7d47fafba7a38f99b40af3))
+
 ## [0.3.0](https://github.com/peterbaumert/netbox-device-view/compare/v0.3.0...v0.3.0) (2026-05-03)
 
 
