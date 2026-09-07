@@ -39,7 +39,7 @@
 		{# svg_panels is [(pos, svg_markup)] in ports_chassis order, pre-built in the view #}
 		{% for panel_pos, svg_markup in svg_panels %}
 		<p class="text-muted small mb-1">Device {{ panel_pos }}</p>
-		<div class="dv-svg-wrapper"
+		<div class="dv-svg-wrapper{% if panel_pos == active_panel %} active-device{% endif %}"
 			id="dv-svg-wrapper-{{ panel_pos }}"
 			data-device="{{ panel_pos }}">
 			{% autoescape off %}{{ svg_markup }}{% endautoescape %}
@@ -51,7 +51,7 @@
 		{% for device, interfaces in ports_chassis.items %} Device
 		{{device}}
 		<div
-			class="deviceview area d{{device}}{% for sw, modules in modules.items %}{% if sw == device %}{% for module in modules %} module{{module.module_type.model}}{% endfor %}{% endif %}{% endfor %}"
+			class="deviceview area d{{device}}{% if device == active_panel %} active-device{% endif %}{% for sw, modules in modules.items %}{% if sw == device %}{% for module in modules %} module{{module.module_type.model}}{% endfor %}{% endif %}{% endfor %}"
 		>
 			{% for int in interfaces %}
 			<a

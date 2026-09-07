@@ -36,7 +36,7 @@
 		{# fallback for patch panels whose ports_chassis keys don't match svg_views #}
 		{% for panel_pos, svg_markup in svg_panels %}
 		<p class="text-muted small mb-1">Device {{ panel_pos }}</p>
-		<div class="dv-svg-wrapper"
+		<div class="dv-svg-wrapper{% if panel_pos == active_panel %} active-device{% endif %}"
 			id="dv-svg-wrapper-{{ panel_pos }}"
 			data-device="{{ panel_pos }}">
 			{% autoescape off %}{{ svg_markup }}{% endautoescape %}
@@ -48,7 +48,7 @@
 		{% for switch, interfaces in ports_chassis.items %} Device
 		{{switch}}
 		<div
-			class="deviceview area d{{switch}}{% for sw, modules in modules.items %}{% if sw == switch %}{% for module in modules %} module{{module.module_type.model}}{% endfor %}{% endif %}{% endfor %}"
+			class="deviceview area d{{switch}}{% if switch == active_panel %} active-device{% endif %}{% for sw, modules in modules.items %}{% if sw == switch %}{% for module in modules %} module{{module.module_type.model}}{% endfor %}{% endif %}{% endfor %}"
 		>
 			{% for int in interfaces %}
 			<a

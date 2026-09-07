@@ -64,3 +64,13 @@
     clear: both;
     margin-top: 5rem;
 }
+
+/* Highlights the panel of the specific virtual chassis member the user
+   navigated to, since a VC device page renders every member's panel
+   stacked together (see issue #24). Uses the theme's primary color
+   variable so it adapts automatically between light and dark mode. */
+.deviceview.active-device {
+	border: 2px solid var(--bs-primary, #0d6efd);
+	box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+}
+

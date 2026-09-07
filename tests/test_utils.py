@@ -378,3 +378,31 @@ class TestDeviceHeightPx:
 
         for u in range(1, 6):
             assert device_height_px(self._make_device_type(u)) == u * 42
+
+
+class TestActivePanelKey:
+    """
+    active_panel_key() identifies which panel (in a multi-panel virtual
+    chassis view) corresponds to the specific device the user navigated
+    to, so the template can highlight it (issue #24).
+    """
+
+    def test_standalone_device_returns_none(self):
+        from netbox_device_view.utils import active_panel_key
+
+        dev = types.SimpleNamespace(virtual_chassis=None, vc_position=None)
+        assert active_panel_key(dev) is None
+
+    def test_virtual_chassis_member_returns_vc_position(self):
+        from netbox_device_view.utils import active_panel_key
+
+        dev = types.SimpleNamespace(virtual_chassis=MagicMock(), vc_position=2)
+        assert active_panel_key(dev) == 2
+
+    def test_virtual_chassis_member_position_zero(self):
+        # vc_position=0 is falsy but a valid position -- must not be
+        # coerced to None or any other sentinel.
+        from netbox_device_view.utils import active_panel_key
+
+        dev = types.SimpleNamespace(virtual_chassis=MagicMock(), vc_position=0)
+        assert active_panel_key(dev) == 0

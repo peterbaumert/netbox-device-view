@@ -2,7 +2,7 @@ from dcim.models import Device
 from django.conf import settings
 from netbox.plugins import PluginTemplateExtension
 
-from .utils import device_height_px, prepare, prepare_svg
+from .utils import active_panel_key, device_height_px, prepare, prepare_svg
 
 
 class Ports(PluginTemplateExtension):
@@ -66,6 +66,7 @@ class Ports(PluginTemplateExtension):
                 "modules": modules,
                 "height": height,
                 "ports_chassis": ports_chassis,
+                "active_panel": active_panel_key(obj),
             },
         )
 

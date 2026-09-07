@@ -12,6 +12,7 @@ from netbox_device_view.forms import DeviceViewImportForm
 
 from . import forms, models, tables
 from .utils import (
+    active_panel_key,
     device_height_px,
     get_stylenames_for_device_type,
     prepare,
@@ -126,6 +127,7 @@ class DeviceDeviceView(generic.ObjectView):
             "height": height,
             "ports_chassis": ports_chassis,
             "cable_colors": request.GET.get("cable_colors", "off"),
+            "active_panel": active_panel_key(instance),
         }
 
     def get_object(self, **kwargs):

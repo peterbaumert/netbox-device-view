@@ -112,6 +112,22 @@ def device_height_px(device_type):
     return device_type.u_height * 2 * 20 + device_type.u_height * 2
 
 
+def active_panel_key(obj):
+    """Return the ports_chassis/svg_views key that corresponds to ``obj``,
+    or ``None`` for a standalone (non-virtual-chassis) device.
+
+    Mirrors the key scheme used internally by ``prepare()``/``prepare_svg()``:
+    a virtual chassis member is keyed by its ``vc_position``. Used to
+    highlight the specific device the user navigated to when viewing a
+    virtual chassis, whose device page shows every member's panel stacked
+    together. Returns ``None`` for a standalone device since there is only
+    ever one panel in that case, making a highlight redundant.
+    """
+    if obj.virtual_chassis is None:
+        return None
+    return obj.vc_position
+
+
 def _detect_variant(member_modules, device_view) -> str | None:
     """Return the first installed module model name that matches a known variant,
     or None if no variant applies."""
