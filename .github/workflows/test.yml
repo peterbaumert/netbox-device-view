@@ -13,7 +13,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     container:
-      image: netboxcommunity/netbox:v4.5.4
+      image: netboxcommunity/netbox:v4.7.0
 
     services:
       postgres:

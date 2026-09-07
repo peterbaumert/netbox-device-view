@@ -45,4 +45,5 @@ for d in dupes:
 
 ## NetBox Docker image
 
-The devcontainer and CI use `netboxcommunity/netbox:v4.5.4`.
+CI uses `netboxcommunity/netbox:v4.7.0` (Python 3.14, Django 6.1).
+The devcontainer tracks `netboxcommunity/netbox:latest` for local development.
