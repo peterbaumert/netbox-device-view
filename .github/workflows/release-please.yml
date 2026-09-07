@@ -6,7 +6,7 @@ on:
       - main
 
 env:
-  NETBOX_VERSION: "4.5.x"  # update when testing against a new NetBox version
+  NETBOX_VERSION: "4.5.x-4.7.x"  # update when testing against a new NetBox version
 
 permissions:
   contents: write
@@ -33,7 +33,29 @@ jobs:
         run: |
           VERSION="${{ fromJson(steps.release.outputs.pr).title }}"
           VERSION="${VERSION##* }"
-          sed -i "/^|---|/a | ${VERSION} | ${{ env.NETBOX_VERSION }} | 3.12+ | Tested |" COMPATIBILITY.md
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+          python3 - "$VERSION" "${{ env.NETBOX_VERSION }}" << 'PYEOF'
+          import sys
+
+          version, netbox_version = sys.argv[1], sys.argv[2]
+          path = "COMPATIBILITY.md"
+          with open(path) as f:
+              lines = f.readlines()
+
+          header = "| Plugin version | NetBox version | Python | Notes |\n"
+          try:
+              idx = lines.index(header)
+          except ValueError:
+              sys.exit(f"Could not find table header in {path}")
+
+          # Insert new row immediately after the separator row (idx + 1),
+          # which is right below the header line.
+          new_row = f"| {version} | {netbox_version} | 3.12+ | Tested |\n"
+          lines.insert(idx + 2, new_row)
+
+          with open(path, "w") as f:
+              f.writelines(lines)
+          PYEOF
 
       - name: Commit COMPATIBILITY.md to release PR branch
         if: ${{ steps.release.outputs.pr }}
