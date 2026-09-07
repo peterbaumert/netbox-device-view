@@ -13,6 +13,7 @@ class NetBoxDeviceViewConfig(PluginConfig):
     version = metadata.get("Version")
     author = metadata.get("Author")
     base_url = "device_view"
+    min_version = "4.5.0"
     required_settings: ClassVar[list[str]] = []
     default_settings: ClassVar[dict[str, object]] = {
         "show_on_device_tab": False,
