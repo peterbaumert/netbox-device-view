@@ -827,7 +827,7 @@ variants:
         "value", [v for v in _WRONG_VALUES if not isinstance(v, list)], ids=repr
     )
     def test_non_list_value_is_read_as_empty(self, path, value):
-        assert validate(_yaml_with(path, value)) == []
+        assert parse(_yaml_with(path, value)) == parse(_yaml_with(path, []))
 
     @pytest.mark.parametrize(
         "path",
