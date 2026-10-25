@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 import yaml as pyyaml
 
-from netbox_device_view.layout import parser
+from netbox_device_view.layout import parser, render_css
 from netbox_device_view.layout.model import (
     ElementKind,
     Face,
@@ -648,16 +648,98 @@ views:
 # ---------------------------------------------------------------------------
 
 
-_MAPPING_HELPERS = {"mapping", "optional_mapping", "named_mapping"}
-_MAPPINGS = {
+_COERCING_HELPERS = {
+    "mapping",
+    "optional_mapping",
+    "named_mapping",
+    "items",
+    "css_classes",
+}
+# Uses each key that lenient parsing reads; add each new key here.
+_FULL_LAYOUT = {
     "version": 1,
-    "meta": {"description": "d"},
-    "canvas": {"columns": 4, "rows": 1},
-    "views": {"front": {"canvas": {"columns": 4}, "rows": []}, "rear": {}},
+    "meta": {"description": "d", "background": "#000"},
+    "canvas": {"columns": 8, "rows": 2, "cell_size": 20, "background": "#111"},
+    "views": {
+        "front": {
+            "background": "#222",
+            "canvas": {"columns": 8},
+            "rows": [
+                {
+                    "elements": [
+                        "a",
+                        {
+                            "key": "b",
+                            "kind": "port",
+                            "label": "B",
+                            "face": "front",
+                            "css_classes": ["c"],
+                            "at": {"row": 1, "col": 2},
+                            "span": {"rows": 1, "cols": 1},
+                        },
+                    ]
+                },
+                {
+                    "sequence": {
+                        "kind": "port",
+                        "prefix": "p",
+                        "start": 1,
+                        "count": 2,
+                        "step": 1,
+                        "pattern": "all",
+                        "row": 2,
+                    }
+                },
+                {
+                    "group": {
+                        "spacer": 1,
+                        "sections": [
+                            {"sequence": {"prefix": "g", "pattern": "top-odd"}},
+                            {"elements": ["e"]},
+                            {"blank": 1},
+                        ],
+                    }
+                },
+                {"spacer": 1},
+                {"blank": 1},
+            ],
+        },
+        "rear": {"copy_from": "front", "elements": [{"key": "r"}]},
+    },
     "variants": {
-        "V": {"elements": [{"key": "k", "at": {"row": 1}, "span": {"cols": 1}}]}
+        "V": {"match": "module", "view": "front", "rows": [{"elements": ["v"]}]},
+        "W": {"view": "rear", "elements": [{"key": "w"}]},
     },
 }
+
+
+def _paths(node, path=()):
+    """Yield the path of each value below ``node``."""
+    children = node.items() if isinstance(node, dict) else enumerate(node)
+    for key, child in children:
+        yield path + (key,)
+        if isinstance(child, (dict, list)):
+            yield from _paths(child, path + (key,))
+
+
+def _value_at(path):
+    value = _FULL_LAYOUT
+    for key in path:
+        value = value[key]
+    return value
+
+
+def _yaml_with(path, value):
+    data = copy.deepcopy(_FULL_LAYOUT)
+    parent = data
+    for key in path[:-1]:
+        parent = parent[key]
+    parent[path[-1]] = value
+    return pyyaml.safe_dump(data)
+
+
+_ALL_PATHS = list(_paths(_FULL_LAYOUT))
+_LIST_PATHS = [p for p in _ALL_PATHS if isinstance(_value_at(p), list)]
 _MAPPING_PATHS = [
     ("meta",),
     ("canvas",),
@@ -667,9 +749,15 @@ _MAPPING_PATHS = [
     ("views", "rear"),
     ("variants",),
     ("variants", "V"),
-    ("variants", "V", "elements", 0, "at"),
-    ("variants", "V", "elements", 0, "span"),
+    ("variants", "W"),
+    ("views", "front", "rows", 0, "elements", 1, "at"),
+    ("views", "front", "rows", 0, "elements", 1, "span"),
 ]
+_WRONG_VALUES = ["x", 5, None, [1], {"k": 1}]
+
+
+def _path_id(path):
+    return ".".join(map(str, path))
 
 
 class TestValidate:
@@ -699,19 +787,63 @@ variants:
         assert layout.rear.elements == []
         assert layout.front.variants == {"NM-1": []}
 
+    @pytest.mark.parametrize("path", _MAPPING_PATHS, ids=_path_id)
     @pytest.mark.parametrize(
-        "path", _MAPPING_PATHS, ids=lambda p: ".".join(map(str, p))
+        "value", [v for v in _WRONG_VALUES if not isinstance(v, dict)], ids=repr
     )
-    @pytest.mark.parametrize("value", ["x", 5, [1]], ids=repr)
     def test_non_mapping_value_is_read_as_empty(self, path, value):
-        data = copy.deepcopy(_MAPPINGS)
-        parent = data
-        for key in path[:-1]:
-            parent = parent[key]
-        parent[path[-1]] = value
-        assert validate(pyyaml.safe_dump(data)) == []
+        assert validate(_yaml_with(path, value)) == []
 
-    def test_mapping_helper_results_are_used(self):
+    def test_full_layout_is_valid(self):
+        assert validate(pyyaml.safe_dump(_FULL_LAYOUT)) == []
+
+    @pytest.mark.parametrize("path", _ALL_PATHS, ids=_path_id)
+    @pytest.mark.parametrize("value", _WRONG_VALUES, ids=repr)
+    def test_wrong_typed_value_gives_a_layout_or_a_parse_error(self, path, value):
+        assert not [
+            e
+            for e in validate(_yaml_with(path, value))
+            if e.startswith("Unexpected error")
+        ]
+        try:
+            layout = parse(_yaml_with(path, value))
+        except LayoutParseError:
+            return
+        render_css(layout)
+
+    @pytest.mark.parametrize("value", [5, True], ids=repr)
+    def test_non_string_element_key_is_a_parse_error(self, value):
+        path = ("views", "rear", "elements", 0, "key")
+        with pytest.raises(LayoutParseError, match="key: must be a string"):
+            parse(_yaml_with(path, value))
+
+    def test_non_string_view_name_is_a_front_view(self):
+        layout = parse("version: 1\nviews:\n  5:\n    elements: [{key: a}]\n")
+        assert layout.views[5].face == Face.FRONT
+        render_css(layout)
+
+    @pytest.mark.parametrize("path", _LIST_PATHS, ids=_path_id)
+    @pytest.mark.parametrize(
+        "value", [v for v in _WRONG_VALUES if not isinstance(v, list)], ids=repr
+    )
+    def test_non_list_value_is_read_as_empty(self, path, value):
+        assert validate(_yaml_with(path, value)) == []
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            ("views", "front", "rows", 1, "sequence", "kind"),
+            ("variants", "V", "view"),
+            ("views", "rear", "copy_from"),
+        ],
+        ids=_path_id,
+    )
+    @pytest.mark.parametrize("value", [[1], {"k": 1}], ids=repr)
+    def test_list_or_mapping_text_value_is_a_parse_error(self, path, value):
+        with pytest.raises(LayoutParseError, match="must be a string|must be one of"):
+            parse(_yaml_with(path, value))
+
+    def test_coercing_helper_results_are_used(self):
         # A discarded result leaves the raw value, which can be None or a string.
         tree = ast.parse(Path(parser.__file__).read_text())
         discarded = [
@@ -720,7 +852,7 @@ variants:
             if isinstance(node, ast.Expr)
             and isinstance(node.value, ast.Call)
             and isinstance(node.value.func, ast.Attribute)
-            and node.value.func.attr in _MAPPING_HELPERS
+            and node.value.func.attr in _COERCING_HELPERS
         ]
         assert discarded == []
 

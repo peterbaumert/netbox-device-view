@@ -84,6 +84,7 @@ from __future__ import annotations
 import itertools
 import re
 from collections import Counter
+from collections.abc import Hashable
 from dataclasses import dataclass
 from typing import Any
 
@@ -260,10 +261,13 @@ class _Rules:
                 f"{where}: must have exactly one key of {', '.join(keys)}."
             )
 
-    def items(self, raw: Any, where: str) -> Any:
-        if self.strict and not isinstance(raw, list):
+    def items(self, raw: Any, where: str) -> list[Any]:
+        """Return ``raw`` as a list; lenient mode reads a non-list as empty."""
+        if isinstance(raw, list):
+            return raw
+        if self.strict:
             raise LayoutParseError(f"{where}: must be a list.")
-        return raw
+        return []
 
     def integer(
         self, raw: Any, where: str, minimum: int = 0, maximum: int | None = None
@@ -287,9 +291,12 @@ class _Rules:
         return raw
 
     def text(self, raw: Any, where: str, choices: tuple[str, ...] = ()) -> Any:
-        if self.strict and (
-            not isinstance(raw, str) or (choices and raw not in choices)
-        ):
+        """Return ``raw``; lenient mode rejects only an unhashable value, such as a list."""
+        if self.strict:
+            invalid = not isinstance(raw, str) or bool(choices and raw not in choices)
+        else:
+            invalid = not isinstance(raw, Hashable)
+        if invalid:
             expected = f"one of {', '.join(choices)}" if choices else "a string"
             raise LayoutParseError(f"{where}: must be {expected}.")
         return raw
@@ -305,8 +312,11 @@ class _Rules:
             raise LayoutParseError(f"{where}: background must be one CSS color.")
         return tinycss2.serialize(color)
 
-    def css_classes(self, raw: Any, where: str) -> Any:
-        if self.strict and not (
+    def css_classes(self, raw: Any, where: str) -> list[Any]:
+        """Return ``raw`` as a list; lenient mode reads a non-list as empty."""
+        if not self.strict:
+            return self.items(raw, where)
+        if not (
             isinstance(raw, list)
             and len(raw) <= MAX_CSS_CLASSES
             and all(_is_identifier(c) for c in raw)
@@ -509,8 +519,8 @@ def _compile_variants(
         view.variants[variant_name] = variant_elements
 
 
-def _parse_face(name: str) -> Face:
-    return _FACES.get(name.lower(), Face.FRONT)
+def _parse_face(name: Any) -> Face:
+    return _FACES.get(str(name).lower(), Face.FRONT)
 
 
 def _parse_canvas(
@@ -615,8 +625,8 @@ def _compile_rows(
     Compile either a rows-based or flat elements-based definition into
     a list of PlacedElement objects.
     """
-    rules.items(rows, f"{where}.rows")
-    rules.items(flat_elements, f"{where}.elements")
+    rows = rules.items(rows, f"{where}.rows")
+    flat_elements = rules.items(flat_elements, f"{where}.elements")
     rules.one_source(rows, flat_elements, where)
     if flat_elements:
         return _compile_flat_elements(
@@ -767,7 +777,7 @@ def _compile_explicit_row(
     """Place an explicit list of elements into ``current_row``."""
     result: list[PlacedElement] = []
     col = row_cursors.get(current_row, 1)
-    rules.items(elements, where)
+    elements = rules.items(elements, where)
     for i, raw in enumerate(elements):
         if isinstance(raw, str):
             rules.take(1)
@@ -1079,6 +1089,8 @@ def _expand_element(
     key = raw.get("key", "")
     if rules.strict and "key" in raw and not _is_identifier(key):
         raise LayoutParseError(_key_error(where, key))
+    if key is not None and not isinstance(key, str):
+        raise LayoutParseError(f"{where}.key: must be a string.")
     if not key:
         if kind in _PORT_KINDS:
             raise LayoutParseError(f"Element of kind {kind_str!r} must have a 'key'.")
@@ -1086,9 +1098,9 @@ def _expand_element(
         key = f"{'s' if kind == ElementKind.SPACER else 'x'}{col}"
 
     label = raw.get("label")
-    if "css_classes" in raw:
-        rules.css_classes(raw["css_classes"], where)
-    css_classes = raw.get("css_classes", []) or []
+    css_classes = (
+        rules.css_classes(raw["css_classes"], where) if "css_classes" in raw else []
+    )
 
     face_str = rules.text(raw.get("face", "both"), f"{where}.face", tuple(_FACES))
     face = _FACES.get(face_str, Face.BOTH)
