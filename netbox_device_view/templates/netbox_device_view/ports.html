@@ -30,10 +30,11 @@
 	<h2 class="card-header">Deviceview {% if object.virtual_chassis %}{{ object.virtual_chassis.name }}{% else %}{{ object.name }}{% endif %}</h2>
 	<div class="card-body">
 		{% spaceless %}
-		{% if use_svg %}
+		{% if layout_error %}
+		{% include 'netbox_device_view/inc/layout_error.html' %}
+		{% elif use_svg %}
 		{# ── SVG rendering path ── #}
-		{# svg_panels is [(pos, svg_markup)] pre-built in template_content.py with #}
-		{# fallback for patch panels whose ports_chassis keys don't match svg_views #}
+		{# svg_panels is [(pos, svg_markup)] from utils.device_view_context() #}
 		{% for panel_pos, svg_markup in svg_panels %}
 		<p class="text-muted small mb-1">Device {{ panel_pos }}</p>
 		<div class="dv-svg-wrapper{% if panel_pos == active_panel %} active-device{% endif %}"

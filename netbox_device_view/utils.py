@@ -11,6 +11,7 @@ from dcim.models import (
 from django.core.exceptions import ObjectDoesNotExist
 
 from .layout import (
+    LayoutParseError,
     get_css_for_device_view,
     get_svg_for_device_view,
 )
@@ -337,3 +338,65 @@ def prepare_svg(obj):
         return None, None, None, None
 
     return svg_views, modules, ports_chassis, device_view
+
+
+def device_view_context(obj):
+    """Return the render context for the device view of ``obj``, or None without one.
+
+    ``layout_error`` holds the parse error of a stored layout that does not parse.
+    """
+    context = {
+        "layout_error": None,
+        "device_view": None,
+        "dv": None,
+        "svg_views": None,
+        "svg_panels": [],
+        "use_svg": False,
+        "modules": None,
+        "ports_chassis": None,
+        "height": device_height_px(obj.device_type),
+        "active_panel": active_panel_key(obj),
+    }
+    try:
+        use_svg = DeviceView.objects.get(device_type=obj.device_type).use_svg
+    except DeviceView.DoesNotExist:
+        use_svg = False
+
+    try:
+        if use_svg:
+            svg_views, modules, ports_chassis, device_view = prepare_svg(obj)
+            # prepare_svg() gives None when a virtual chassis member has no device view.
+            use_svg = svg_views is not None
+            context["svg_views"] = svg_views
+        if not use_svg:
+            dv, modules, ports_chassis, device_view = prepare(obj)
+            context["dv"] = dv
+    except LayoutParseError as exc:
+        context["layout_error"] = str(exc)
+        return context
+
+    svg_views = context["svg_views"]
+    if (
+        (context["dv"] is None and svg_views is None)
+        or modules is None
+        or ports_chassis is None
+    ):
+        return None
+
+    svg_panels = []
+    if use_svg and svg_views and ports_chassis:
+        svg_panels = [
+            (pos, svg_views[pos]) for pos in ports_chassis if pos in svg_views
+        ]
+        # Patch panel ports have the keys "Front" and "Rear", not the device name.
+        if not svg_panels:
+            svg_panels = list(svg_views.items())
+
+    context.update(
+        device_view=device_view,
+        svg_panels=svg_panels,
+        use_svg=use_svg,
+        modules=modules,
+        ports_chassis=ports_chassis,
+    )
+    return context
