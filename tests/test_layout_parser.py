@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 import yaml as pyyaml
 
-from netbox_device_view.layout import parser, render_css
+from netbox_device_view.layout import parser, render_css, render_svg
 from netbox_device_view.layout.model import (
     ElementKind,
     Face,
@@ -810,6 +810,32 @@ variants:
         except LayoutParseError:
             return
         render_css(layout)
+        for name in {None}.union(*(v.variants for v in layout.views.values())):
+            render_svg(layout, variant_name=name)
+
+    @pytest.mark.parametrize(
+        ("path", "error"),
+        [
+            (("meta", "background"), "meta.background: must be a string."),
+            (("canvas", "background"), "canvas.background: must be a string."),
+            (
+                ("views", "front", "background"),
+                "views.front.background: must be a string.",
+            ),
+            (
+                ("views", "front", "rows", 0, "elements", 1, "label"),
+                "views.front.rows[0].elements[1].label: must be a string.",
+            ),
+            (
+                ("views", "front", "rows", 0, "elements", 1, "css_classes", 0),
+                "views.front.rows[0].elements[1].css_classes: must be a list of strings.",
+            ),
+        ],
+        ids=lambda v: _path_id(v) if isinstance(v, tuple) else "",
+    )
+    @pytest.mark.parametrize("value", [5, True, [1], {"k": 1}], ids=repr)
+    def test_non_string_text_value_is_a_parse_error(self, path, error, value):
+        assert validate(_yaml_with(path, value)) == [error]
 
     @pytest.mark.parametrize("value", [5, True], ids=repr)
     def test_non_string_element_key_is_a_parse_error(self, value):

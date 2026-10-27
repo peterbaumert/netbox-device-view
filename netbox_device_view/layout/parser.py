@@ -301,10 +301,16 @@ class _Rules:
             raise LayoutParseError(f"{where}: must be {expected}.")
         return raw
 
+    def optional_string(self, raw: Any, where: str) -> Any:
+        """Return ``raw``; lenient mode rejects a value that is not a string or None."""
+        if not self.strict and raw is not None and not isinstance(raw, str):
+            raise LayoutParseError(f"{where}: must be a string.")
+        return raw
+
     def background(self, raw: Any, where: str) -> Any:
         """Return a strict background as tinycss2 serializes its one color value."""
         if not self.strict or raw is None:
-            return raw
+            return self.optional_string(raw, f"{where}.background")
         color = None
         if isinstance(raw, str):
             color = one_css_color(tinycss2.parse_component_value_list(raw))
@@ -314,8 +320,14 @@ class _Rules:
 
     def css_classes(self, raw: Any, where: str) -> list[Any]:
         """Return ``raw`` as a list; lenient mode reads a non-list as empty."""
+        # Lenient mode also rejects a non-string item, which the renderers cannot join.
         if not self.strict:
-            return self.items(raw, where)
+            classes = self.items(raw, where)
+            if not all(isinstance(c, str) for c in classes):
+                raise LayoutParseError(
+                    f"{where}.css_classes: must be a list of strings."
+                )
+            return classes
         if not (
             isinstance(raw, list)
             and len(raw) <= MAX_CSS_CLASSES
@@ -1097,7 +1109,7 @@ def _expand_element(
         # auto-generate for spacers/blanks
         key = f"{'s' if kind == ElementKind.SPACER else 'x'}{col}"
 
-    label = raw.get("label")
+    label = rules.optional_string(raw.get("label"), f"{where}.label")
     css_classes = (
         rules.css_classes(raw["css_classes"], where) if "css_classes" in raw else []
     )
