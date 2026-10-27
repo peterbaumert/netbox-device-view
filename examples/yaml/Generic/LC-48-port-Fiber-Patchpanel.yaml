@@ -24,6 +24,7 @@ views:
           start: 25
           count: 24
           pattern: all
+          row: 2
 
   rear:
     copy_from: front

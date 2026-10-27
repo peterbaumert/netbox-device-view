@@ -91,7 +91,7 @@ def test_base_layout_passes():
 
 
 @pytest.mark.parametrize("example", EXAMPLES, ids=lambda path: path.stem)
-def test_bundled_examples_pass_unchanged(example):
+def test_bundled_examples_pass(example):
     strict(example.read_text())
 
 
@@ -338,9 +338,58 @@ class TestGridAreas:
         with pytest.raises(LayoutParseError, match="grid area"):
             strict(layout(change))
 
-    def test_elements_outside_the_canvas_are_accepted(self):
-        # Three bundled examples place elements past the canvas edge.
-        strict(layout(lambda d: variant_element(d).update(at={"row": 1, "col": 9})))
+    @pytest.mark.parametrize(
+        ("change", "where", "key"),
+        [
+            (
+                lambda d: front(d)["rows"][1]["sequence"].update(
+                    count=8, pattern="all"
+                ),
+                "views.front",
+                "eth8",
+            ),
+            (
+                lambda d: variant_element(d).update(at={"row": 1, "col": 9}),
+                "variants.NM-2X",
+                "te1",
+            ),
+            (
+                lambda d: variant_element(d).update(span={"rows": 3, "cols": 1}),
+                "variants.NM-2X",
+                "te1",
+            ),
+            (
+                lambda d: d["views"].update(
+                    rear={
+                        "canvas": {"rows": 1},
+                        "elements": [{"key": "p1", "at": {"row": 2}}],
+                    }
+                ),
+                "views.rear",
+                "p1",
+            ),
+        ],
+    )
+    def test_elements_outside_the_canvas_are_rejected(self, change, where, key):
+        with pytest.raises(LayoutParseError) as excinfo:
+            strict(layout(change))
+        message = str(excinfo.value)
+        assert message.startswith(f"{where}:")
+        assert f"element {key!r}" in message
+        assert "outside the canvas of view" in message
+
+    def test_element_on_the_canvas_edge_is_accepted(self):
+        def change(d):
+            variant_element(d).update(
+                at={"row": 2, "col": 8}, span={"rows": 1, "cols": 1}
+            )
+
+        strict(layout(change))
+
+    def test_lenient_parse_accepts_elements_outside_the_canvas(self):
+        data = layout(lambda d: variant_element(d).update(at={"row": 1, "col": 9}))
+        parsed = parse(yaml.safe_dump(data))
+        assert parsed.front.elements_for_variant("NM-2X")[-1].col == 9
 
     def test_port_names_need_not_match_components(self):
         strict(layout(lambda d: variant_element(d).update(key="does-not-exist")))
@@ -538,12 +587,11 @@ class TestReviewFindings:
             strict(layout(change))
 
     def test_base_elements_are_charged_in_every_variant(self):
-        # Each variant renders the base elements again, also those outside the canvas.
+        # Each variant renders the base elements again, also those that overlap.
         def change(d):
             d["canvas"] = {"columns": 1, "rows": 1}
-            front(d)["rows"] = [
-                {"sequence": {"kind": "interface", "prefix": "eth", "count": 1000}}
-            ]
+            del front(d)["rows"]
+            front(d)["elements"] = [{"key": f"p{i}"} for i in range(1000)]
             d["variants"] = {f"V{i}": {"elements": []} for i in range(100)}
 
         with pytest.raises(LayoutParseError, match=f"{MAX_PAINTED_CELLS} grid cells"):
@@ -659,10 +707,16 @@ class TestReviewFindings:
     )
     def test_element_position_and_span_are_bounded(self, field, value, limit):
         def place(n):
-            return layout(
-                lambda d: d.update(variants={})
-                or front(d).update(rows=[], elements=[{"key": "p1", field: {value: n}}])
-            )
+            def change(d):
+                d["canvas"] = (
+                    {"columns": MAX_CANVAS_CELLS, "rows": 1}
+                    if limit == MAX_CANVAS_CELLS
+                    else {"columns": 1, "rows": MAX_CANVAS_ROWS}
+                )
+                d["variants"] = {}
+                front(d).update(rows=[], elements=[{"key": "p1", field: {value: n}}])
+
+            return layout(change)
 
         strict(place(limit))
         with pytest.raises(LayoutParseError, match=f"{field}.{value}"):

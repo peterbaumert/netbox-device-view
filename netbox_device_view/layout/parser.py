@@ -136,7 +136,7 @@ MAX_CANVAS_ROWS = 64
 MAX_EXPANDED_ELEMENTS = 10000
 # Every view and variant renders its whole canvas grid again.
 MAX_RENDERED_CELLS = 4 * MAX_CANVAS_CELLS
-# Each element costs its painted cells, at least one, in every render that includes it.
+# Each element costs its painted cells in every render that includes it.
 MAX_PAINTED_CELLS = 4 * MAX_RENDERED_CELLS
 MAX_CELL_SIZE = 100
 MAX_LABEL_LENGTH = 64
@@ -1071,7 +1071,7 @@ def _expand_element(
     at = rules.optional_mapping(raw.get("at"), "at", f"{where}.at")
     span = rules.optional_mapping(raw.get("span"), "span", f"{where}.span")
 
-    # Elements may extend past their canvas, but not past the largest canvas.
+    # Strict mode also checks the canvas of the view in _check_inside_canvas.
     row = rules.integer(
         at.get("row", default_row), f"{where}.at.row", 1, MAX_CANVAS_ROWS
     )
@@ -1159,8 +1159,23 @@ def _check_elements(layout: NormalizedLayout) -> None:
         for where, elements in element_sets:
             for el in elements:
                 _check_element(el, where)
+                _check_inside_canvas(el, view.canvas, view_name, where)
     _check_painted_cells(layout)
     _check_area_shapes(layout)
+
+
+def _check_inside_canvas(
+    el: PlacedElement, canvas: CanvasConfig, view_name: str, where: str
+) -> None:
+    """Reject an element that is not fully inside the canvas of its view."""
+    last_row = el.row + el.row_span - 1
+    last_col = el.col + el.col_span - 1
+    if last_row > canvas.rows or last_col > canvas.columns:
+        raise LayoutParseError(
+            f"{where}: element {el.key!r} at rows {el.row}-{last_row}, columns "
+            f"{el.col}-{last_col} is outside the canvas of view {view_name!r} "
+            f"({canvas.rows} rows, {canvas.columns} columns)."
+        )
 
 
 def _check_painted_cells(layout: NormalizedLayout) -> None:
@@ -1221,9 +1236,9 @@ def _check_ports_keep_their_cells(
 
 
 def _painted_cells(el: PlacedElement, canvas: CanvasConfig) -> int:
-    """Return the cells the renderer writes for ``el``, at least one."""
+    """Return the cells the renderer writes for ``el``."""
     rows, cols = painted_area(el, canvas)
-    return len(rows) * len(cols) or 1
+    return len(rows) * len(cols)
 
 
 def _key_error(where: str, key: Any) -> str:

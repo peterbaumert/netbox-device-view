@@ -10,40 +10,50 @@ canvas:
 views:
   front:
     rows:
-      - blank: 32   # top decorative row (empty)
+      # Row 1: an empty decorative row
       - elements:
-          # Two blank cells on the left
           - kind: blank
-            key: "y1"
+            key: "x"
+            span: {cols: 32}
+      # Row 2: the next "elements" entries stay in row 2, the last canvas row
+      - elements:
           - kind: blank
-            key: "y2"
-      - group:
-          spacer: 1
-          sections:
-            - sequence:
-                kind: port
-                prefix: "port-"
-                start: 1
-                count: 8
-                pattern: all
-            - sequence:
-                kind: port
-                prefix: "port-"
-                start: 9
-                count: 8
-                pattern: all
-            - sequence:
-                kind: port
-                prefix: "port-"
-                start: 17
-                count: 8
-                pattern: all
-      - spacer: 1
+            key: "y"
+            span: {cols: 2}
+      - sequence:
+          kind: port
+          prefix: "port-"
+          start: 1
+          count: 8
+          pattern: all
+          row: 2
+      - elements:
+          - kind: spacer
+            key: "s1"
+      - sequence:
+          kind: port
+          prefix: "port-"
+          start: 9
+          count: 8
+          pattern: all
+          row: 2
+      - elements:
+          - kind: spacer
+            key: "s2"
+      - sequence:
+          kind: port
+          prefix: "port-"
+          start: 17
+          count: 8
+          pattern: all
+          row: 2
+      - elements:
+          - kind: spacer
+            key: "s3"
       - elements:
           - kind: interface
             key: "sfp--25"
           - kind: interface
             key: "sfp--26"
-      - elements:
           - kind: blank
             key: "z"
