@@ -196,6 +196,13 @@ def process_interfaces(interfaces, ports_chassis, dev):
     return ports_chassis
 
 
+def process_console_ports(device, ports_chassis, dev):
+    """Add the console ports and console-server ports of ``device``."""
+    for ports in (device.consoleports.all(), device.consoleserverports.all()):
+        ports_chassis = process_ports(ports, ports_chassis, dev)
+    return ports_chassis
+
+
 def process_ports(ports, ports_chassis, dev):
     if ports is not None:
         for port in ports:
@@ -256,12 +263,7 @@ def prepare(obj):
             )
             ports_chassis = process_ports(obj.frontports.all(), ports_chassis, "Front")
             ports_chassis = process_ports(obj.rearports.all(), ports_chassis, "Rear")
-            ports_chassis = process_ports(
-                obj.consoleports.all(), ports_chassis, obj.name
-            )
-            ports_chassis = process_ports(
-                obj.consoleserverports.all(), ports_chassis, obj.name
-            )
+            ports_chassis = process_console_ports(obj, ports_chassis, obj.name)
         else:
             members = sorted(
                 obj.virtual_chassis.members.select_related("rack").all(),
@@ -280,11 +282,8 @@ def prepare(obj):
                 ports_chassis = process_interfaces(
                     member.interfaces.all(), ports_chassis, member.vc_position
                 )
-                ports_chassis = process_ports(
-                    member.consoleports.all(), ports_chassis, member.vc_position
-                )
-                ports_chassis = process_ports(
-                    member.consoleserverports.all(), ports_chassis, member.vc_position
+                ports_chassis = process_console_ports(
+                    member, ports_chassis, member.vc_position
                 )
     except ObjectDoesNotExist:
         return None, None, None, None
@@ -320,12 +319,7 @@ def prepare_svg(obj):
             )
             ports_chassis = process_ports(obj.frontports.all(), ports_chassis, "Front")
             ports_chassis = process_ports(obj.rearports.all(), ports_chassis, "Rear")
-            ports_chassis = process_ports(
-                obj.consoleports.all(), ports_chassis, obj.name
-            )
-            ports_chassis = process_ports(
-                obj.consoleserverports.all(), ports_chassis, obj.name
-            )
+            ports_chassis = process_console_ports(obj, ports_chassis, obj.name)
         else:
             members = sorted(
                 obj.virtual_chassis.members.select_related("rack").all(),
@@ -343,12 +337,7 @@ def prepare_svg(obj):
                 ports_chassis = process_interfaces(
                     member.interfaces.all(), ports_chassis, pos
                 )
-                ports_chassis = process_ports(
-                    member.consoleports.all(), ports_chassis, pos
-                )
-                ports_chassis = process_ports(
-                    member.consoleserverports.all(), ports_chassis, pos
-                )
+                ports_chassis = process_console_ports(member, ports_chassis, pos)
                 device_view = member_view
     except ObjectDoesNotExist:
         return None, None, None, None

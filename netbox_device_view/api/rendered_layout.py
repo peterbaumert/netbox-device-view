@@ -3,8 +3,9 @@ Rendered-layout composition for the device rendered-layout API endpoint.
 
 Bridges the layout engine (``netbox_device_view.layout`` — pure, NetBox-
 agnostic geometry) with real NetBox component objects (Interface,
-ConsolePort, ConsoleServerPort, FrontPort, RearPort) to produce the versioned JSON envelope
-consumed by API clients (e.g. the netbox-companion mobile app).
+ConsolePort, ConsoleServerPort, FrontPort, RearPort) to produce the
+versioned JSON envelope consumed by API clients (e.g. the netbox-companion
+mobile app).
 
 This computes connection-state, cable-color, and peer-summary information
 server-side, replicating exactly what ``ports.html``'s inline JavaScript
@@ -155,8 +156,8 @@ def _fill_for(status: ComponentStatus) -> str:
 
 
 def _component_querysets(device):
-    """Return (interfaces, console_ports, console_server_ports, front_ports,
-    rear_ports) querysets for one device, with N+1-avoiding prefetches
+    """Return (interfaces, [console_ports, console_server_ports, front_ports,
+    rear_ports]) querysets for one device, with N+1-avoiding prefetches
     matching the same prefetch shape NetBox's own InterfaceViewSet/
     ConsolePortViewSet/ConsoleServerPortViewSet/FrontPortViewSet/
     RearPortViewSet use (dcim/api/views.py)."""
@@ -190,13 +191,13 @@ def _component_querysets(device):
         .exclude(type="virtual")
         .prefetch_related("cable__terminations")
     )
-    return interfaces, console_ports, console_server_ports, front_ports, rear_ports
+    return interfaces, [console_ports, console_server_ports, front_ports, rear_ports]
 
 
 def _stylename_map(device) -> dict[str, ComponentStatus]:
     """Return {stylename: ComponentStatus} for every eligible component on
     one device — the same key space PlacedElement.key ("stylename") uses."""
-    interfaces, *ports = _component_querysets(device)
+    interfaces, ports = _component_querysets(device)
 
     by_stylename: dict[str, ComponentStatus] = {}
     for itf in interfaces:

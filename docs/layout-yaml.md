@@ -156,7 +156,7 @@ Each key becomes a CSS grid area, and a browser ignores the whole grid when an a
 | `blank` | Decorative filler cell |
 | `label` | Text label |
 
-The `key` binds an element to a NetBox component, and `kind` does not. A cell binds to the interface, front port, rear port, console port or console-server port whose stylename is the same as its key (see [How It Works](how-it-works.md#port--interface-name--stylename)). Thus `console-port` is the kind for console-server ports too, for example `ttys1` on a console server or `async0-1-0` on an async module.
+An element of a port-like kind binds to a NetBox component by its `key`. The port-like kinds are all kinds except `spacer`, `blank` and `label`. The element binds to the component whose stylename is the same as its key (see [How It Works](how-it-works.md#port--interface-name--stylename)). The kind does not select the component type. Thus `console-port` is the kind for console-server ports too, for example `ttys1` on a console server or `async0-1-0` on an async module.
 
 ---
 

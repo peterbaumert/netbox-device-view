@@ -212,6 +212,8 @@ class TestPrepare:
         dev.modules.all.return_value = []
         dev.frontports.all.return_value = []
         dev.rearports.all.return_value = []
+        dev.consoleports.all.return_value = []
+        dev.consoleserverports.all.return_value = []
         return dev
 
     @patch("netbox_device_view.utils.DeviceView")
@@ -290,6 +292,8 @@ class TestPrepare:
         member1.device_type = MagicMock()
         member1.interfaces.all.return_value = []
         member1.modules.all.return_value = []
+        member1.consoleports.all.return_value = []
+        member1.consoleserverports.all.return_value = []
 
         member2 = MagicMock()
         member2.vc_position = 2
@@ -299,6 +303,8 @@ class TestPrepare:
         member2.device_type = MagicMock()
         member2.interfaces.all.return_value = []
         member2.modules.all.return_value = []
+        member2.consoleports.all.return_value = []
+        member2.consoleserverports.all.return_value = []
 
         dev = self._make_device(vc=MagicMock())
         dev.virtual_chassis.members.select_related.return_value.all.return_value = [
@@ -326,6 +332,8 @@ class TestPrepare:
         member.device_type = MagicMock()
         member.interfaces.all.return_value = []
         member.modules.all.return_value = []
+        member.consoleports.all.return_value = []
+        member.consoleserverports.all.return_value = []
 
         dev = self._make_device(vc=MagicMock())
         dev.virtual_chassis.members.select_related.return_value.all.return_value = [

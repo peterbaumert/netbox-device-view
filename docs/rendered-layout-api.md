@@ -85,7 +85,7 @@ Token-authenticated, like the rest of the plugin's API. Requires `dcim.view_devi
 
 | Field | Type | Notes |
 |---|---|---|
-| `object_type` | string | `"dcim.interface"` \| `"dcim.consoleport"` \| `"dcim.consoleserverport"` \| `"dcim.frontport"` \| `"dcim.rearport"` — Django's `app_label.model_name`, so it's safe to route on directly. Power ports are not yet collected by the plugin's layout pipeline (`utils.prepare_svg`), so they never appear here. |
+| `object_type` | string | `"dcim.interface"` \| `"dcim.consoleport"` \| `"dcim.consoleserverport"` \| `"dcim.frontport"` \| `"dcim.rearport"`. This is Django's `app_label.model_name`, so it's safe to route on directly. Power ports are not yet collected by the plugin's layout pipeline (`utils.prepare_svg`), so they never appear here. |
 | `object_id` | int | The real NetBox object's primary key — use this (with `object_type`) to navigate, not a URL. |
 | `name` | string | The component's real name, e.g. `"GigabitEthernet0/1"`. |
 | `x`, `y`, `width`, `height` | int | Hotspot geometry in the same coordinate space as the panel's `svg`/`viewBox` — apply one transform to both. |
@@ -122,7 +122,7 @@ A Virtual Chassis device returns one set of panels per member, in rack order (sa
 
 ## Performance
 
-The composition path (`netbox_device_view.api.rendered_layout`) prefetches cable terminations and cable-trace path objects for every component up front, using the same prefetch shapes NetBox's own `InterfaceViewSet`/`ConsolePortViewSet`/`FrontPortViewSet`/`RearPortViewSet` use (`dcim/api/views.py`) — one request never issues a query per port. This is covered by a regression test (`tests/test_api_rendered_layout.py::QueryCountTests`) that asserts query count doesn't scale with interface count.
+The composition path (`netbox_device_view.api.rendered_layout`) prefetches cable terminations and cable-trace path objects for every component up front, using the same prefetch shapes NetBox's own `InterfaceViewSet`/`ConsolePortViewSet`/`ConsoleServerPortViewSet`/`FrontPortViewSet`/`RearPortViewSet` use (`dcim/api/views.py`) — one request never issues a query per port. This is covered by a regression test (`tests/test_api_rendered_layout.py::QueryCountTests`) that asserts query count doesn't scale with interface count.
 
 No caching (`ETag`/`Last-Modified`) is applied — connection state and cable colour can change at any time, and a stale cached response would show wrong data. This may be revisited if it becomes a real bottleneck.
 
