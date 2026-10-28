@@ -214,9 +214,8 @@ class TestPrepare:
         dev.rearports.all.return_value = []
         return dev
 
-    @patch("netbox_device_view.utils.ConsolePort")
     @patch("netbox_device_view.utils.DeviceView")
-    def test_no_device_view_returns_none_triple(self, MockDV, MockCP):
+    def test_no_device_view_returns_none_triple(self, MockDV):
         from django.core.exceptions import ObjectDoesNotExist
 
         MockDV.objects.get.side_effect = ObjectDoesNotExist
@@ -227,13 +226,11 @@ class TestPrepare:
         assert ports_chassis is None
         assert device_view is None
 
-    @patch("netbox_device_view.utils.ConsolePort")
     @patch("netbox_device_view.utils.DeviceView")
-    def test_single_device_returns_dicts(self, MockDV, MockCP):
+    def test_single_device_returns_dicts(self, MockDV):
         mock_dv = MockDV.objects.get.return_value
         mock_dv.grid_template_area = ".area { }"
         mock_dv.has_yaml_layout = False
-        MockCP.objects.filter.return_value = []
         dev = self._make_device()
 
         dv, modules, _ports_chassis, device_view = prepare(dev)
@@ -242,13 +239,11 @@ class TestPrepare:
         assert 1 in modules
         assert device_view is MockDV.objects.get.return_value
 
-    @patch("netbox_device_view.utils.ConsolePort")
     @patch("netbox_device_view.utils.DeviceView")
-    def test_interfaces_processed_into_ports_chassis(self, MockDV, MockCP):
+    def test_interfaces_processed_into_ports_chassis(self, MockDV):
         mock_dv = MockDV.objects.get.return_value
         mock_dv.grid_template_area = ".area { }"
         mock_dv.has_yaml_layout = False
-        MockCP.objects.filter.return_value = []
 
         dev = self._make_device()
         dev.interfaces.all.return_value = [
@@ -263,13 +258,11 @@ class TestPrepare:
         assert "gigabitethernet0-1" in stylenames
         assert "gigabitethernet0-2" in stylenames
 
-    @patch("netbox_device_view.utils.ConsolePort")
     @patch("netbox_device_view.utils.DeviceView")
-    def test_virtual_interfaces_excluded(self, MockDV, MockCP):
+    def test_virtual_interfaces_excluded(self, MockDV):
         mock_dv = MockDV.objects.get.return_value
         mock_dv.grid_template_area = ".area { }"
         mock_dv.has_yaml_layout = False
-        MockCP.objects.filter.return_value = []
 
         dev = self._make_device()
         dev.interfaces.all.return_value = [
@@ -283,13 +276,11 @@ class TestPrepare:
         assert len(items) == 1
         assert items[0].stylename == "gigabitethernet0-1"
 
-    @patch("netbox_device_view.utils.ConsolePort")
     @patch("netbox_device_view.utils.DeviceView")
-    def test_virtual_chassis_scopes_css(self, MockDV, MockCP):
+    def test_virtual_chassis_scopes_css(self, MockDV):
         mock_dv = MockDV.objects.get.return_value
         mock_dv.grid_template_area = ".deviceview.area { }"
         mock_dv.has_yaml_layout = False
-        MockCP.objects.filter.return_value = []
 
         member1 = MagicMock()
         member1.vc_position = 1
@@ -320,16 +311,12 @@ class TestPrepare:
         assert ".area.d1" in dv[1]
         assert ".area.d2" in dv[2]
 
-    @patch("netbox_device_view.utils.ConsolePort")
     @patch("netbox_device_view.utils.DeviceView")
-    def test_virtual_chassis_missing_member_device_view_returns_none(
-        self, MockDV, MockCP
-    ):
+    def test_virtual_chassis_missing_member_device_view_returns_none(self, MockDV):
         from django.core.exceptions import ObjectDoesNotExist
 
         # Second member has no DeviceView → ObjectDoesNotExist → whole prepare returns None
         MockDV.objects.get.side_effect = ObjectDoesNotExist
-        MockCP.objects.filter.return_value = []
 
         member = MagicMock()
         member.vc_position = 1

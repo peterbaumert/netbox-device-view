@@ -2,8 +2,8 @@ import re
 import unicodedata
 
 from dcim.models import (
-    ConsolePort,
     ConsolePortTemplate,
+    ConsoleServerPortTemplate,
     FrontPortTemplate,
     InterfaceTemplate,
     RearPortTemplate,
@@ -84,6 +84,18 @@ def get_stylenames_for_device_type(device_type_id):
                 "name": tmpl.name,
                 "stylename": _derive_port_stylename(tmpl.name),
                 "kind": "Console Port",
+                "type": tmpl.get_type_display(),
+            }
+        )
+
+    for tmpl in ConsoleServerPortTemplate.objects.filter(
+        device_type_id=device_type_id
+    ).order_by("name"):
+        results.append(
+            {
+                "name": tmpl.name,
+                "stylename": _derive_port_stylename(tmpl.name),
+                "kind": "Console Server Port",
                 "type": tmpl.get_type_display(),
             }
         )
@@ -245,9 +257,10 @@ def prepare(obj):
             ports_chassis = process_ports(obj.frontports.all(), ports_chassis, "Front")
             ports_chassis = process_ports(obj.rearports.all(), ports_chassis, "Rear")
             ports_chassis = process_ports(
-                ConsolePort.objects.filter(device_id=obj.id),
-                ports_chassis,
-                obj.name,
+                obj.consoleports.all(), ports_chassis, obj.name
+            )
+            ports_chassis = process_ports(
+                obj.consoleserverports.all(), ports_chassis, obj.name
             )
         else:
             members = sorted(
@@ -268,9 +281,10 @@ def prepare(obj):
                     member.interfaces.all(), ports_chassis, member.vc_position
                 )
                 ports_chassis = process_ports(
-                    ConsolePort.objects.filter(device_id=member.id),
-                    ports_chassis,
-                    member.vc_position,
+                    member.consoleports.all(), ports_chassis, member.vc_position
+                )
+                ports_chassis = process_ports(
+                    member.consoleserverports.all(), ports_chassis, member.vc_position
                 )
     except ObjectDoesNotExist:
         return None, None, None, None
@@ -307,9 +321,10 @@ def prepare_svg(obj):
             ports_chassis = process_ports(obj.frontports.all(), ports_chassis, "Front")
             ports_chassis = process_ports(obj.rearports.all(), ports_chassis, "Rear")
             ports_chassis = process_ports(
-                ConsolePort.objects.filter(device_id=obj.id),
-                ports_chassis,
-                obj.name,
+                obj.consoleports.all(), ports_chassis, obj.name
+            )
+            ports_chassis = process_ports(
+                obj.consoleserverports.all(), ports_chassis, obj.name
             )
         else:
             members = sorted(
@@ -329,9 +344,10 @@ def prepare_svg(obj):
                     member.interfaces.all(), ports_chassis, pos
                 )
                 ports_chassis = process_ports(
-                    ConsolePort.objects.filter(device_id=member.id),
-                    ports_chassis,
-                    pos,
+                    member.consoleports.all(), ports_chassis, pos
+                )
+                ports_chassis = process_ports(
+                    member.consoleserverports.all(), ports_chassis, pos
                 )
                 device_view = member_view
     except ObjectDoesNotExist:

@@ -3,7 +3,7 @@ Rendered-layout composition for the device rendered-layout API endpoint.
 
 Bridges the layout engine (``netbox_device_view.layout`` — pure, NetBox-
 agnostic geometry) with real NetBox component objects (Interface,
-ConsolePort, FrontPort, RearPort) to produce the versioned JSON envelope
+ConsolePort, ConsoleServerPort, FrontPort, RearPort) to produce the versioned JSON envelope
 consumed by API clients (e.g. the netbox-companion mobile app).
 
 This computes connection-state, cable-color, and peer-summary information
@@ -20,8 +20,16 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass, field
+from itertools import chain
 
-from dcim.models import ConsolePort, Device, FrontPort, Interface, RearPort
+from dcim.models import (
+    ConsolePort,
+    ConsoleServerPort,
+    Device,
+    FrontPort,
+    Interface,
+    RearPort,
+)
 from django.contrib.contenttypes.prefetch import GenericPrefetch
 
 from ..layout import parse as parse_layout
@@ -55,7 +63,7 @@ _HEX_COLOR_RE = re.compile(r"^[0-9A-Fa-f]{6}$")
 # Component types with a NetBox REST /trace/ action (PathEndpointMixin in
 # dcim/api/views.py). FrontPort/RearPort use PassThroughPortMixin instead
 # and have no /trace/ action.
-_TRACE_SUPPORTED_MODELS = {"interface", "consoleport"}
+_TRACE_SUPPORTED_MODELS = {"interface", "consoleport", "consoleserverport"}
 
 
 class UnavailableReason:
@@ -147,10 +155,11 @@ def _fill_for(status: ComponentStatus) -> str:
 
 
 def _component_querysets(device):
-    """Return (interfaces, console_ports, front_ports, rear_ports) querysets
-    for one device, with N+1-avoiding prefetches matching the same
-    prefetch shape NetBox's own InterfaceViewSet/ConsolePortViewSet/
-    FrontPortViewSet/RearPortViewSet use (dcim/api/views.py)."""
+    """Return (interfaces, console_ports, console_server_ports, front_ports,
+    rear_ports) querysets for one device, with N+1-avoiding prefetches
+    matching the same prefetch shape NetBox's own InterfaceViewSet/
+    ConsolePortViewSet/ConsoleServerPortViewSet/FrontPortViewSet/
+    RearPortViewSet use (dcim/api/views.py)."""
     interfaces = (
         Interface.objects.filter(device=device)
         .exclude(type__in=("virtual", "lag"))
@@ -168,6 +177,9 @@ def _component_querysets(device):
     console_ports = ConsolePort.objects.filter(device=device).prefetch_related(
         "_path", "cable__terminations"
     )
+    console_server_ports = ConsoleServerPort.objects.filter(
+        device=device
+    ).prefetch_related("_path", "cable__terminations")
     front_ports = (
         FrontPort.objects.filter(device=device)
         .exclude(type="virtual")
@@ -178,20 +190,20 @@ def _component_querysets(device):
         .exclude(type="virtual")
         .prefetch_related("cable__terminations")
     )
-    return interfaces, console_ports, front_ports, rear_ports
+    return interfaces, console_ports, console_server_ports, front_ports, rear_ports
 
 
 def _stylename_map(device) -> dict[str, ComponentStatus]:
     """Return {stylename: ComponentStatus} for every eligible component on
     one device — the same key space PlacedElement.key ("stylename") uses."""
-    interfaces, console_ports, front_ports, rear_ports = _component_querysets(device)
+    interfaces, *ports = _component_querysets(device)
 
     by_stylename: dict[str, ComponentStatus] = {}
     for itf in interfaces:
         by_stylename[_derive_interface_stylename(itf.name)] = compute_component_status(
             itf, is_port=False
         )
-    for port in list(console_ports) + list(front_ports) + list(rear_ports):
+    for port in chain.from_iterable(ports):
         by_stylename[_derive_port_stylename(port.name)] = compute_component_status(
             port, is_port=True
         )

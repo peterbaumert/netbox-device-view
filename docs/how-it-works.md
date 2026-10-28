@@ -5,7 +5,7 @@ For each **Device Type** you create a **DeviceView** object (at *Plugins → Dev
 When you visit a device of that type, the plugin:
 
 1. Looks up the DeviceView for the device's type
-2. Collects all interfaces, front ports, rear ports, and console ports from the device
+2. Collects all interfaces, front ports, rear ports, console ports, and console-server ports from the device, including the ports of installed modules
 3. Derives a `stylename` for each port (see below)
 4. Renders the layout using the configured render mode (CSS Grid or SVG)
 5. Applies port status colours based on connection state
@@ -31,6 +31,7 @@ Each interface and port is mapped to a `stylename` used as the CSS grid-area nam
 - For the 3-part Cisco format `Type{dev}/{module}/{port}`, stylename is `type{module}-{port}`
 - For the 2-part format `Type{dev}/{port}`, stylename is `type-{port}`
 - All other names: non-alphanumeric/dot characters replaced with `-`
+- Front, rear, console and console-server ports always use the previous rule: `ttyS1` becomes `ttys1`, and `Async0/1/0` becomes `async0-1-0`
 - Purely numeric stylenames are prefixed with `p`
 - Virtual and LAG interfaces are skipped
 
