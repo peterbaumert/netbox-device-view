@@ -1,15 +1,9 @@
-"""
-Tests for DeviceViewFilterSet, in particular the Quick Search (search())
-override that lets the Device Views list view's search box filter by
-device type model and manufacturer name.
-
-Uses real DB-backed fixtures (like test_api_rendered_layout.py) since
-django-filter's FilterSet needs a real queryset to operate on.
-"""
+"""DeviceViewFilterSet, and the Device Views list page and REST API that apply it."""
 
 from dcim.models import DeviceType, Manufacturer
 from django.test import TestCase
 from django.urls import reverse
+from extras.models import Tag
 from rest_framework.test import APIClient
 from users.models import User
 
@@ -17,7 +11,7 @@ from netbox_device_view.filtersets import DeviceViewFilterSet
 from netbox_device_view.models import DeviceView
 
 
-class DeviceViewFixtures(TestCase):
+class DeviceViewTestBase(TestCase):
     @classmethod
     def setUpTestData(cls):
         cisco = Manufacturer.objects.create(name="Cisco", slug="cisco")
@@ -40,7 +34,7 @@ class DeviceViewFixtures(TestCase):
         )
 
 
-class DeviceViewFilterSetSearchTests(DeviceViewFixtures):
+class DeviceViewFilterSetSearchTests(DeviceViewTestBase):
 
     def test_search_matches_device_type_model(self):
         results = DeviceViewFilterSet({"q": "C9300"}, DeviceView.objects.all()).qs
@@ -73,7 +67,7 @@ class DeviceViewFilterSetSearchTests(DeviceViewFixtures):
         self.assertEqual(results.count(), 0)
 
 
-class DeviceViewListFilterTests(DeviceViewFixtures):
+class DeviceViewListFilterTests(DeviceViewTestBase):
     """The list page and the REST API apply the filter set."""
 
     LIST_URL = "plugins:netbox_device_view:deviceview_list"
@@ -126,11 +120,15 @@ class DeviceViewListFilterTests(DeviceViewFixtures):
         self.assertContains(response, 'name="device_type_id"')
 
     def test_list_offers_no_bulk_action_without_a_view(self):
+        response = self._list({})
+        for name in ("_edit", "_rename", "_delete"):
+            self.assertNotContains(response, f'name="{name}"')
         # Without a URL, NetBox renders the button with formaction "None".
-        self.assertNotContains(self._list({}), 'formaction="None')
+        self.assertNotContains(response, 'formaction="None')
 
     def test_api_applies_the_filters(self):
         cisco, ubiquiti = self.cisco_view.pk, self.ubiquiti_view.pk
+        self.ubiquiti_view.tags.add(Tag.objects.create(name="Lab", slug="lab"))
         for params, expected in (
             ({"q": "C9300"}, {cisco}),
             ({"q": "ubiquiti"}, {ubiquiti}),
@@ -138,6 +136,8 @@ class DeviceViewListFilterTests(DeviceViewFixtures):
             ({"device_type": self.ubiquiti_type.slug}, {ubiquiti}),
             ({"manufacturer_id": self.cisco_type.manufacturer_id}, {cisco}),
             ({"manufacturer": "ubiquiti"}, {ubiquiti}),
+            ({"id": cisco}, {cisco}),
+            ({"tag": "lab"}, {ubiquiti}),
             ({}, {cisco, ubiquiti}),
         ):
             with self.subTest(params):
