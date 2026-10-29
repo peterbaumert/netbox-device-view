@@ -283,7 +283,7 @@ class ViewPermissionTests(TestCase):
         for hidden in ("Gi2", "sw2", "peer1"):
             self.assertNotIn(hidden, panel)
 
-    def test_device_page_panel_names_a_virtual_chassis_only_when_the_user_can_view_it(self):
+    def test_device_page_panel_names_virtual_chassis_only_when_viewable(self):
         self.assertIn("Deviceview sw1<", self._device_page_panel())
         self._grant(self.user, "dcim.view_virtualchassis")
         self.assertIn("Deviceview vc1<", self._device_page_panel())

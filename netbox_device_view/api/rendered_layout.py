@@ -234,7 +234,10 @@ def _stylename_map(device, user) -> dict[str, ComponentStatus]:
 def _face_views(normalized) -> list[tuple[str, str, LayoutView]]:
     """Return (key, label, view) for each face of a parsed layout."""
     if normalized.has_separate_faces():
-        faces = (("front", "Front", normalized.front), ("rear", "Rear", normalized.rear))
+        faces = (
+            ("front", "Front", normalized.front),
+            ("rear", "Rear", normalized.rear),
+        )
         return [face for face in faces if face[2]]
     view = normalized.front or normalized.rear
     if view is None:

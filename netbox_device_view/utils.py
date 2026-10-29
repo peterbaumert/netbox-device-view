@@ -203,9 +203,7 @@ def process_interfaces(interfaces, ports_chassis, dev):
 def process_console_ports(device, ports_chassis, dev, user):
     """Add the console ports and console-server ports of ``device`` that ``user`` can view."""
     for ports in (device.consoleports, device.consoleserverports):
-        ports_chassis = process_ports(
-            ports.restrict(user, "view"), ports_chassis, dev
-        )
+        ports_chassis = process_ports(ports.restrict(user, "view"), ports_chassis, dev)
     return ports_chassis
 
 
