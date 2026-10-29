@@ -3,12 +3,25 @@ Tests for netbox_device_view.utils
 
 process_interfaces() and process_ports() derive a `stylename` attribute on each
 object and bucket them by device key in ports_chassis.  prepare() orchestrates
-those calls around the DB lookup.
+those calls around the DB lookup, with real objects.
 """
 
 import types
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
+from dcim.models import (
+    Device,
+    DeviceRole,
+    DeviceType,
+    Interface,
+    Manufacturer,
+    Site,
+    VirtualChassis,
+)
+from django.test import TestCase
+from users.models import User
+
+from netbox_device_view.models import DeviceView
 from netbox_device_view.utils import prepare, process_interfaces, process_ports
 
 # ---------------------------------------------------------------------------
@@ -194,158 +207,105 @@ class TestProcessPortsStylename:
 
 
 # ---------------------------------------------------------------------------
-# prepare() — DB interaction mocked
+# prepare() — real device, device view and interfaces
 # ---------------------------------------------------------------------------
 
 
-class TestPrepare:
+class TestPrepare(TestCase):
     """prepare() wires the DB lookup + process_* calls together."""
 
-    def _make_device(self, vc=None):
-        """Minimal device mock for a non-VC device."""
-        dev = MagicMock()
-        dev.virtual_chassis = vc
-        dev.name = "test-switch"
-        dev.id = 1
-        dev.device_type = MagicMock()
-        dev.interfaces.all.return_value = []
-        dev.modules.all.return_value = []
-        dev.frontports.all.return_value = []
-        dev.rearports.all.return_value = []
-        dev.consoleports.all.return_value = []
-        dev.consoleserverports.all.return_value = []
-        return dev
+    @classmethod
+    def setUpTestData(cls):
+        manufacturer = Manufacturer.objects.create(name="Mfr", slug="mfr")
+        cls.device_type = DeviceType.objects.create(
+            manufacturer=manufacturer, model="Switch", slug="switch"
+        )
+        cls.site = Site.objects.create(name="Site", slug="site")
+        cls.role = DeviceRole.objects.create(name="Role", slug="role")
+        cls.user = User.objects.create_user(username="admin", is_superuser=True)
 
-    @patch("netbox_device_view.utils.DeviceView")
-    def test_no_device_view_returns_none_triple(self, MockDV):
-        from django.core.exceptions import ObjectDoesNotExist
+    def _device(self, name="test-switch", **kwargs):
+        return Device.objects.create(
+            name=name,
+            device_type=self.device_type,
+            site=self.site,
+            role=self.role,
+            **kwargs,
+        )
 
-        MockDV.objects.get.side_effect = ObjectDoesNotExist
-        dev = self._make_device()
-        dv, modules, ports_chassis, device_view = prepare(dev)
-        assert dv is None
-        assert modules is None
-        assert ports_chassis is None
-        assert device_view is None
+    def _device_view(self, css=".area { }"):
+        return DeviceView.objects.create(
+            device_type=self.device_type, grid_template_area=css
+        )
 
-    @patch("netbox_device_view.utils.DeviceView")
-    def test_single_device_returns_dicts(self, MockDV):
-        mock_dv = MockDV.objects.get.return_value
-        mock_dv.grid_template_area = ".area { }"
-        mock_dv.has_yaml_layout = False
-        dev = self._make_device()
+    def test_no_device_view_returns_none_triple(self):
+        assert prepare(self._device(), self.user) == (None, None, None, None)
 
-        dv, modules, _ports_chassis, device_view = prepare(dev)
+    def test_single_device_returns_dicts(self):
+        device_view = self._device_view()
+
+        dv, modules, _ports_chassis, result = prepare(self._device(), self.user)
 
         assert dv == {1: ".area { }"}
         assert 1 in modules
-        assert device_view is MockDV.objects.get.return_value
+        assert result == device_view
 
-    @patch("netbox_device_view.utils.DeviceView")
-    def test_interfaces_processed_into_ports_chassis(self, MockDV):
-        mock_dv = MockDV.objects.get.return_value
-        mock_dv.grid_template_area = ".area { }"
-        mock_dv.has_yaml_layout = False
+    def test_interfaces_processed_into_ports_chassis(self):
+        self._device_view()
+        device = self._device()
+        for name in ("GigabitEthernet0/0/1", "GigabitEthernet0/0/2"):
+            Interface.objects.create(device=device, name=name, type="1000base-t")
 
-        dev = self._make_device()
-        dev.interfaces.all.return_value = [
-            make_iface("GigabitEthernet0/0/1"),
-            make_iface("GigabitEthernet0/0/2"),
-        ]
+        _dv, _modules, ports_chassis, _device_view = prepare(device, self.user)
 
-        _dv, _modules, ports_chassis, _device_view = prepare(dev)
-
-        assert "test-switch" in ports_chassis
         stylenames = [i.stylename for i in ports_chassis["test-switch"]]
         assert "gigabitethernet0-1" in stylenames
         assert "gigabitethernet0-2" in stylenames
 
-    @patch("netbox_device_view.utils.DeviceView")
-    def test_virtual_interfaces_excluded(self, MockDV):
-        mock_dv = MockDV.objects.get.return_value
-        mock_dv.grid_template_area = ".area { }"
-        mock_dv.has_yaml_layout = False
+    def test_virtual_interfaces_excluded(self):
+        self._device_view()
+        device = self._device()
+        Interface.objects.create(device=device, name="Loopback0", type="virtual")
+        Interface.objects.create(
+            device=device, name="GigabitEthernet0/0/1", type="1000base-t"
+        )
 
-        dev = self._make_device()
-        dev.interfaces.all.return_value = [
-            make_iface("Loopback0", iface_type="virtual"),
-            make_iface("GigabitEthernet0/0/1", iface_type="1000base-t"),
-        ]
-
-        _dv, _modules, ports_chassis, _device_view = prepare(dev)
+        _dv, _modules, ports_chassis, _device_view = prepare(device, self.user)
 
         items = ports_chassis.get("test-switch", [])
         assert len(items) == 1
         assert items[0].stylename == "gigabitethernet0-1"
 
-    @patch("netbox_device_view.utils.DeviceView")
-    def test_virtual_chassis_scopes_css(self, MockDV):
-        mock_dv = MockDV.objects.get.return_value
-        mock_dv.grid_template_area = ".deviceview.area { }"
-        mock_dv.has_yaml_layout = False
+    def test_virtual_chassis_scopes_css(self):
+        self._device_view(".deviceview.area { }")
+        chassis = VirtualChassis.objects.create(name="vc")
+        member1, _member2 = (
+            self._device(f"sw{position}", virtual_chassis=chassis, vc_position=position)
+            for position in (1, 2)
+        )
 
-        member1 = MagicMock()
-        member1.vc_position = 1
-        member1.id = 1
-        member1.position = None
-        member1.rack = None
-        member1.device_type = MagicMock()
-        member1.interfaces.all.return_value = []
-        member1.modules.all.return_value = []
-        member1.consoleports.all.return_value = []
-        member1.consoleserverports.all.return_value = []
-
-        member2 = MagicMock()
-        member2.vc_position = 2
-        member2.id = 2
-        member2.position = None
-        member2.rack = None
-        member2.device_type = MagicMock()
-        member2.interfaces.all.return_value = []
-        member2.modules.all.return_value = []
-        member2.consoleports.all.return_value = []
-        member2.consoleserverports.all.return_value = []
-
-        dev = self._make_device(vc=MagicMock())
-        dev.virtual_chassis.members.select_related.return_value.all.return_value = [
-            member1,
-            member2,
-        ]
-
-        dv, _modules, _ports_chassis, _device_view = prepare(dev)
+        dv, _modules, _ports_chassis, _device_view = prepare(member1, self.user)
 
         assert ".area.d1" in dv[1]
         assert ".area.d2" in dv[2]
 
-    @patch("netbox_device_view.utils.DeviceView")
-    def test_virtual_chassis_missing_member_device_view_returns_none(self, MockDV):
-        from django.core.exceptions import ObjectDoesNotExist
+    def test_virtual_chassis_missing_member_device_view_returns_none(self):
+        self._device_view()
+        chassis = VirtualChassis.objects.create(name="vc")
+        member = self._device("sw1", virtual_chassis=chassis, vc_position=1)
+        other_type = DeviceType.objects.create(
+            manufacturer=self.device_type.manufacturer, model="Other", slug="other"
+        )
+        Device.objects.create(
+            name="sw2",
+            device_type=other_type,
+            site=self.site,
+            role=self.role,
+            virtual_chassis=chassis,
+            vc_position=2,
+        )
 
-        # Second member has no DeviceView → ObjectDoesNotExist → whole prepare returns None
-        MockDV.objects.get.side_effect = ObjectDoesNotExist
-
-        member = MagicMock()
-        member.vc_position = 1
-        member.id = 1
-        member.position = None
-        member.rack = None
-        member.device_type = MagicMock()
-        member.interfaces.all.return_value = []
-        member.modules.all.return_value = []
-        member.consoleports.all.return_value = []
-        member.consoleserverports.all.return_value = []
-
-        dev = self._make_device(vc=MagicMock())
-        dev.virtual_chassis.members.select_related.return_value.all.return_value = [
-            member
-        ]
-
-        dv, modules, ports_chassis, device_view = prepare(dev)
-
-        assert dv is None
-        assert modules is None
-        assert ports_chassis is None
-        assert device_view is None
+        assert prepare(member, self.user) == (None, None, None, None)
 
 
 # ---------------------------------------------------------------------------

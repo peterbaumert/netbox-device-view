@@ -11,7 +11,7 @@ This computes connection-state, cable-color, and peer-summary information
 server-side, replicating exactly what ``ports.html``'s inline JavaScript
 (``applyPortStatus()``) currently does client-side for the web tab — see
 that template for the reference behaviour this mirrors. Device/DeviceView
-selection reuses ``utils.py``'s ``_detect_variant``/``_rack_sort_key`` and
+selection reuses ``utils.py``'s ``_detect_variant``/``panel_members`` and
 the same stylename derivation as ``process_interfaces``/``process_ports``,
 so layout selection stays identical to the existing web view.
 """
@@ -42,7 +42,9 @@ from ..utils import (
     _derive_interface_stylename,
     _derive_port_stylename,
     _detect_variant,
-    _rack_sort_key,
+    label_connections,
+    panel_members,
+    viewable_device_view,
 )
 
 logger = logging.getLogger(__name__)
@@ -85,16 +87,12 @@ class ComponentStatus:
     peer_labels: list[str] = field(default_factory=list)
 
 
-def _peer_label(peer) -> str:
-    device = getattr(peer, "device", None)
-    name = getattr(peer, "name", None)
-    if device and name:
-        return f"{device} | {name}"
-    return str(peer)
-
-
 def compute_component_status(component, *, is_port: bool) -> ComponentStatus:
-    """Replicate ports.html's applyPortStatus() JS, in Python, for one component."""
+    """Replicate ports.html's applyPortStatus() JS, in Python, for one component.
+
+    ``component.peer_labels`` and ``component.cable_color`` must be set by
+    ``label_connections()``.
+    """
     object_type = f"dcim.{type(component)._meta.model_name}"
 
     if is_port:
@@ -102,14 +100,12 @@ def compute_component_status(component, *, is_port: bool) -> ComponentStatus:
         link_peers = list(component.link_peers)
         connected = bool(link_peers)
         partially_connected = False
-        peers = link_peers
     else:
         enabled = bool(component.enabled)
         connected_endpoints = list(component.connected_endpoints or [])
         link_peers = list(component.link_peers)
         connected = bool(connected_endpoints)
         partially_connected = bool(link_peers) and not connected
-        peers = connected_endpoints or link_peers
 
     if connected:
         state = "connected"
@@ -120,16 +116,13 @@ def compute_component_status(component, *, is_port: bool) -> ComponentStatus:
     else:
         state = "disabled"
 
-    cable = getattr(component, "cable", None)
-    cable_color = cable.color if cable else None
-
     return ComponentStatus(
         component=component,
         object_type=object_type,
         enabled=enabled,
         connection_state=state,
-        cable_color=cable_color,
-        peer_labels=[_peer_label(p) for p in peers],
+        cable_color=component.cable_color,
+        peer_labels=component.peer_labels,
     )
 
 
@@ -155,14 +148,31 @@ def _fill_for(status: ComponentStatus) -> str:
     }[status.connection_state]
 
 
-def _component_querysets(device):
+def _peer_querysets():
+    return [
+        model.objects.select_related("device", "cable")
+        for model in (ConsolePort, ConsoleServerPort, FrontPort, RearPort, Interface)
+    ]
+
+
+def _path_objects():
+    return GenericPrefetch("_path__path_objects", _peer_querysets())
+
+
+def _cable_peers():
+    return GenericPrefetch("cable__terminations__termination", _peer_querysets())
+
+
+def _component_querysets(device, user):
     """Return (interfaces, [console_ports, console_server_ports, front_ports,
-    rear_ports]) querysets for one device, with N+1-avoiding prefetches
+    rear_ports]) querysets of the components of one device that ``user`` can
+    view, with N+1-avoiding prefetches
     matching the same prefetch shape NetBox's own InterfaceViewSet/
     ConsolePortViewSet/ConsoleServerPortViewSet/FrontPortViewSet/
     RearPortViewSet use (dcim/api/views.py)."""
     interfaces = (
-        Interface.objects.filter(device=device)
+        Interface.objects.restrict(user, "view")
+        .filter(device=device)
         .exclude(type__in=("virtual", "lag"))
         .prefetch_related(
             GenericPrefetch(
@@ -175,40 +185,81 @@ def _component_querysets(device):
             ),
         )
     )
-    console_ports = ConsolePort.objects.filter(device=device).prefetch_related(
-        "_path", "cable__terminations"
+    console_ports = (
+        ConsolePort.objects.restrict(user, "view")
+        .filter(device=device)
+        .prefetch_related(_path_objects(), _cable_peers())
     )
-    console_server_ports = ConsoleServerPort.objects.filter(
-        device=device
-    ).prefetch_related("_path", "cable__terminations")
+    console_server_ports = (
+        ConsoleServerPort.objects.restrict(user, "view")
+        .filter(device=device)
+        .prefetch_related(_path_objects(), _cable_peers())
+    )
     front_ports = (
-        FrontPort.objects.filter(device=device)
+        FrontPort.objects.restrict(user, "view")
+        .filter(device=device)
         .exclude(type="virtual")
-        .prefetch_related("cable__terminations")
+        .prefetch_related(_cable_peers())
     )
     rear_ports = (
-        RearPort.objects.filter(device=device)
+        RearPort.objects.restrict(user, "view")
+        .filter(device=device)
         .exclude(type="virtual")
-        .prefetch_related("cable__terminations")
+        .prefetch_related(_cable_peers())
     )
     return interfaces, [console_ports, console_server_ports, front_ports, rear_ports]
 
 
-def _stylename_map(device) -> dict[str, ComponentStatus]:
+def _stylename_map(device, user) -> dict[str, ComponentStatus]:
     """Return {stylename: ComponentStatus} for every eligible component on
-    one device — the same key space PlacedElement.key ("stylename") uses."""
-    interfaces, ports = _component_querysets(device)
+    one device that ``user`` can view — the same key space PlacedElement.key
+    ("stylename") uses."""
+    interfaces, ports = _component_querysets(device, user)
+    interfaces = list(interfaces)
+    ports = list(chain.from_iterable(ports))
+    label_connections([*interfaces, *ports], user)
 
     by_stylename: dict[str, ComponentStatus] = {}
     for itf in interfaces:
         by_stylename[_derive_interface_stylename(itf.name)] = compute_component_status(
             itf, is_port=False
         )
-    for port in chain.from_iterable(ports):
+    for port in ports:
         by_stylename[_derive_port_stylename(port.name)] = compute_component_status(
             port, is_port=True
         )
     return by_stylename
+
+
+def _face_views(normalized) -> list[tuple[str, str, LayoutView]]:
+    """Return (key, label, view) for each face of a parsed layout."""
+    if normalized.has_separate_faces():
+        faces = (("front", "Front", normalized.front), ("rear", "Rear", normalized.rear))
+        return [face for face in faces if face[2]]
+    view = normalized.front or normalized.rear
+    if view is None:
+        return []
+    if view.face == Face.REAR:
+        return [("rear", "Rear", view)]
+    return [("front", "Front", view)]
+
+
+def _hotspot(cell: dict, status: ComponentStatus) -> dict:
+    component = status.component
+    return {
+        "object_type": status.object_type,
+        "object_id": component.pk,
+        "name": component.name,
+        "x": cell["x"],
+        "y": cell["y"],
+        "width": cell["width"],
+        "height": cell["height"],
+        "enabled": status.enabled,
+        "connection_state": status.connection_state,
+        "cable_color": status.cable_color,
+        "peer_labels": status.peer_labels,
+        "trace_supported": type(component)._meta.model_name in _TRACE_SUPPORTED_MODELS,
+    }
 
 
 def _unavailable(device_id: int, reason: str) -> dict:
@@ -222,9 +273,10 @@ def _unavailable(device_id: int, reason: str) -> dict:
     }
 
 
-def compose_rendered_layout(device: Device) -> dict:
+def compose_rendered_layout(device: Device, user) -> dict:
     """
-    Compose the full rendered-layout JSON envelope for one device.
+    Compose the full rendered-layout JSON envelope for one device, with only
+    the objects that ``user`` can view.
 
     Handles both plain devices and virtual chassis (one set of panels per
     member, in rack order) — mirrors utils.prepare_svg()'s branching.
@@ -232,13 +284,7 @@ def compose_rendered_layout(device: Device) -> dict:
     raises for expected "no layout"/"invalid layout" conditions (those are
     reported via ``available``/``reason`` instead).
     """
-    if device.virtual_chassis is None:
-        members = [device]
-    else:
-        members = sorted(
-            device.virtual_chassis.members.select_related("rack").all(),
-            key=_rack_sort_key,
-        )
+    members = panel_members(device, user)
 
     # First pass: resolve every member's DeviceView. Any missing/CSS-only
     # DeviceView fails the whole response (matches prepare_svg()'s
@@ -246,9 +292,7 @@ def compose_rendered_layout(device: Device) -> dict:
     member_views: dict[int, DeviceView] = {}
     for member in members:
         try:
-            member_views[member.pk] = DeviceView.objects.get(
-                device_type=member.device_type
-            )
+            member_views[member.pk] = viewable_device_view(member.device_type, user)
         except DeviceView.DoesNotExist:
             return _unavailable(device.pk, UnavailableReason.NO_LAYOUT)
 
@@ -261,55 +305,24 @@ def compose_rendered_layout(device: Device) -> dict:
         for member in members:
             device_view = member_views[member.pk]
             normalized = parse_layout(device_view.yaml_layout)
-            member_modules = list(member.modules.all())
+            member_modules = list(member.modules.restrict(user, "view"))
             variant = _detect_variant(member_modules, device_view)
-            status_by_stylename = _stylename_map(member)
+            status_by_stylename = _stylename_map(member, user)
 
             member_prefix = f"member-{member.pk}-" if len(members) > 1 else ""
             member_suffix = f" ({member.name})" if len(members) > 1 else ""
 
-            face_views: list[tuple[str, str, LayoutView]] = []
-            if normalized.has_separate_faces():
-                if normalized.front:
-                    face_views.append(("front", "Front", normalized.front))
-                if normalized.rear:
-                    face_views.append(("rear", "Rear", normalized.rear))
-            else:
-                view = normalized.front or normalized.rear
-                if view is not None:
-                    face_label = "Rear" if view.face == Face.REAR else "Front"
-                    face_key = "rear" if view.face == Face.REAR else "front"
-                    face_views.append((face_key, face_label, view))
-
-            for face_key, face_label, view in face_views:
+            for face_key, face_label, view in _face_views(normalized):
                 svg, geometry = render_api_view(
                     view,
                     fills={k: _fill_for(v) for k, v in status_by_stylename.items()},
                     variant_name=variant,
                 )
-                hotspots = []
-                for cell in geometry:
-                    status = status_by_stylename.get(cell["key"])
-                    if status is None:
-                        continue
-                    component = status.component
-                    hotspots.append(
-                        {
-                            "object_type": status.object_type,
-                            "object_id": component.pk,
-                            "name": component.name,
-                            "x": cell["x"],
-                            "y": cell["y"],
-                            "width": cell["width"],
-                            "height": cell["height"],
-                            "enabled": status.enabled,
-                            "connection_state": status.connection_state,
-                            "cable_color": status.cable_color,
-                            "peer_labels": status.peer_labels,
-                            "trace_supported": type(component)._meta.model_name
-                            in _TRACE_SUPPORTED_MODELS,
-                        }
-                    )
+                hotspots = [
+                    _hotspot(cell, status_by_stylename[cell["key"]])
+                    for cell in geometry
+                    if cell["key"] in status_by_stylename
+                ]
                 width, height = svg_dims(view.canvas)
                 panels.append(
                     {

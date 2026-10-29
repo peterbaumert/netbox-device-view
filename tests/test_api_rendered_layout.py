@@ -12,6 +12,7 @@ from core.models import ObjectType
 from dcim.models import (
     Cable,
     ConsolePort,
+    ConsoleServerPort,
     Device,
     DeviceRole,
     DeviceType,
@@ -108,6 +109,21 @@ class RenderedLayoutTestBase(TestCase):
         perm.users.add(self.user)
         perm.object_types.add(object_type)
 
+    def _grant_layout(self):
+        """Grant view on the device and on every object type of its layout."""
+        for name in (
+            "dcim.view_device",
+            "dcim.view_interface",
+            "dcim.view_consoleport",
+            "dcim.view_consoleserverport",
+            "dcim.view_frontport",
+            "dcim.view_rearport",
+            "dcim.view_module",
+            "dcim.view_cable",
+            "netbox_device_view.view_deviceview",
+        ):
+            self._grant(name)
+
     def _authenticate(self):
         # v2 (the non-deprecated token format — v1 is deprecated as of
         # NetBox 4.6, removal planned for v5.0) needs API_TOKEN_PEPPERS
@@ -189,7 +205,7 @@ class AvailabilityTests(RenderedLayoutTestBase):
     def setUp(self):
         super().setUp()
         self._authenticate()
-        self._grant("dcim.view_device")
+        self._grant_layout()
 
     def test_no_device_view_configured(self):
         response = self.client.get(self._url())
@@ -250,7 +266,7 @@ class RenderedPanelTests(RenderedLayoutTestBase):
     def setUp(self):
         super().setUp()
         self._authenticate()
-        self._grant("dcim.view_device")
+        self._grant_layout()
         self.device_view = DeviceView.objects.create(
             device_type=self.device_type,
             grid_template_area="",
@@ -393,7 +409,7 @@ class PatchPanelMultiPanelTests(RenderedLayoutTestBase):
     def setUp(self):
         super().setUp()
         self._authenticate()
-        self._grant("dcim.view_device")
+        self._grant_layout()
         DeviceView.objects.create(
             device_type=self.device_type,
             grid_template_area="",
@@ -430,7 +446,7 @@ class VirtualChassisTests(RenderedLayoutTestBase):
     def setUp(self):
         super().setUp()
         self._authenticate()
-        self._grant("dcim.view_device")
+        self._grant_layout()
         DeviceView.objects.create(
             device_type=self.device_type,
             grid_template_area="",
@@ -496,7 +512,7 @@ class QueryCountTests(RenderedLayoutTestBase):
     def setUp(self):
         super().setUp()
         self._authenticate()
-        self._grant("dcim.view_device")
+        self._grant_layout()
         DeviceView.objects.create(
             device_type=self.device_type,
             grid_template_area="",
@@ -551,3 +567,42 @@ class QueryCountTests(RenderedLayoutTestBase):
         # trace prefetches) is fine; linear growth with interface count is
         # the N+1 regression this test exists to catch.
         self.assertLess(big_count, small_count + 10)
+
+    def test_query_count_does_not_scale_with_port_count(self):
+        peer = Device.objects.create(
+            name="peer", device_type=self.device_type, role=self.role, site=self.site
+        )
+
+        def console_port(device, n):
+            return (
+                ConsolePort.objects.create(device=device, name=f"con{n}"),
+                ConsoleServerPort.objects.create(
+                    device=peer, name=f"{device.name}-{n}"
+                ),
+            )
+
+        def front_port(device, n):
+            return (
+                FrontPort.objects.create(device=device, name=f"front{n}", type="8p8c"),
+                Interface.objects.create(
+                    device=peer, name=f"{device.name}-{n}", type="1000base-t"
+                ),
+            )
+
+        for make_port in (console_port, front_port):
+            with self.subTest(make_port.__name__):
+                counts = []
+                for count in (2, 20):
+                    device = Device.objects.create(
+                        name=f"{make_port.__name__}-{count}",
+                        device_type=self.device_type,
+                        role=self.role,
+                        site=self.site,
+                    )
+                    for n in range(count):
+                        port, far_end = make_port(device, n)
+                        Cable(a_terminations=[port], b_terminations=[far_end]).save()
+                    with CaptureQueriesContext(connection) as ctx:
+                        self.client.get(self._url(device))
+                    counts.append(len(ctx.captured_queries))
+                self.assertLess(counts[1], counts[0] + 10)

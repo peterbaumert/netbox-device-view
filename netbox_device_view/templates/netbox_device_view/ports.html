@@ -27,7 +27,7 @@
 {% endblock %}
 {% block content %}
 <div class="card">
-	<h2 class="card-header">Deviceview {% if object.virtual_chassis %}{{ object.virtual_chassis.name }}{% else %}{{ object.name }}{% endif %}</h2>
+	<h2 class="card-header">Deviceview {{ panel_title }}</h2>
 	<div class="card-body">
 		{% spaceless %}
 		{% if layout_error %}
@@ -55,7 +55,7 @@
 			<a
 				href="{{int.get_absolute_url}}"
 				class="device-view-port 
-				{% if cable_colors == "on" and int.cable.color == "" or cable_colors == "on" and int.cable == None %}
+				{% if cable_colors == "on" and not int.cable_color %}
 				nocolor
 				{% elif cable_colors == "on" %}
 				{% elif int.enabled and int.connected_endpoints|length > 0 or int.is_port and int.link_peers|length > 0 %}
@@ -65,9 +65,9 @@
 				{% else %}
 				bg-danger
 				{% endif %}"
-				data-bs-title="{{ int.name }}{% if int.connected_endpoints|length > 0 %}<hr>{% for ce in int.connected_endpoints %}{{ ce.device }} | {{ ce.name }}{% if not forloop.last %}<br>{% endif %}{% endfor %}{% elif int.link_peers|length > 0 %}<hr>{% for lp in int.link_peers %}{% if lp.device %}{{ lp.device }} | {{ lp.name }}{% elif lp.circuit %}{{ lp }}{% endif %}{% if not forloop.last %}<br>{% endif %}{% endfor %}{% endif %}"
+				data-bs-title="{{ int.name }}{% if int.peer_labels %}<hr>{% for label in int.peer_labels %}{{ label }}{% if not forloop.last %}<br>{% endif %}{% endfor %}{% endif %}"
 				data-bs-content="<a href='{{int.get_absolute_url}}trace/'>Trace</a>"
-				style="grid-area: {{ int.stylename }}{% if cable_colors == 'on' and int.cable.color != '' %}; background-color: #{{ int.cable.color }}{% endif %}"
+				style="grid-area: {{ int.stylename }}{% if cable_colors == 'on' and int.cable_color %}; background-color: #{{ int.cable_color }}{% endif %}"
 				data-bs-toggle="popover"
 				data-bs-trigger="hover focus"
 				data-bs-placement="top"
@@ -151,10 +151,9 @@ function dvInitPopover(el, opts) {
       enabled: {% if int.enabled or int.is_port %}true{% else %}false{% endif %},
       connected: {% if int.connected_endpoints|length > 0 or int.is_port and int.link_peers|length > 0 %}true{% else %}false{% endif %},
       partiallyConnected: {% if not int.is_port and int.link_peers|length > 0 and int.connected_endpoints|length == 0 %}true{% else %}false{% endif %},
-      cableColor: "{% if cable_colors == 'on' and int.cable.color != '' %}{{ int.cable.color }}{% endif %}",
-      cableNoColor: {% if cable_colors == "on" and int.cable.color == "" or cable_colors == "on" and int.cable == None %}true{% else %}false{% endif %},
-      connectedEndpoints: [{% for ce in int.connected_endpoints %}"{{ ce.device }} | {{ ce.name }}"{% if not forloop.last %},{% endif %}{% endfor %}],
-      linkPeers: [{% for lp in int.link_peers %}"{% if lp.device %}{{ lp.device }} | {{ lp.name }}{% elif lp.circuit %}{{ lp }}{% endif %}"{% if not forloop.last %},{% endif %}{% endfor %}]
+      cableColor: "{% if cable_colors == 'on' and int.cable_color %}{{ int.cable_color }}{% endif %}",
+      cableNoColor: {% if cable_colors == "on" and not int.cable_color %}true{% else %}false{% endif %},
+      peerLabels: [{% for label in int.peer_labels %}"{{ label }}"{% if not forloop.last %},{% endif %}{% endfor %}]
     },
     {% endfor %}
     {% endfor %}
@@ -200,7 +199,7 @@ function dvInitPopover(el, opts) {
           if (e.key === "Enter" || e.key === " ") { window.location.href = p.detailUrl; }
         });
         var popTitle = p.name;
-        var peers = p.connectedEndpoints.length > 0 ? p.connectedEndpoints : p.linkPeers;
+        var peers = p.peerLabels;
         if (peers.length > 0) { popTitle += "<hr>" + peers.join("<br>"); }
         var popContent = '<a href="' + p.traceUrl + '">Trace</a>';
         g.setAttribute("data-bs-toggle", "popover");

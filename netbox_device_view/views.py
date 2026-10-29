@@ -4,12 +4,13 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db.models import Count
 from django.http import JsonResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _
 from django.views import View
+from netbox.context import current_request
 from netbox.object_actions import (
     AddObject,
     BulkDelete,
@@ -328,17 +329,21 @@ class DeviceDeviceView(generic.ObjectView):
 
     tab = ViewTab(
         label="Device View",
-        badge=lambda obj: models.DeviceView.objects.filter(
-            device_type=obj.device_type
-        ).count(),
+        badge=lambda obj: models.DeviceView.objects.restrict(
+            current_request.get().user, "view"
+        )
+        .filter(device_type=obj.device_type)
+        .count(),
         hide_if_empty=True,
     )
 
     def get_extra_context(self, request, instance):
         return {
-            **(device_view_context(instance) or {}),
+            **(device_view_context(instance, request.user) or {}),
             "cable_colors": request.GET.get("cable_colors", "off"),
         }
 
     def get_object(self, **kwargs):
-        return Device.objects.get(pk=kwargs.get("pk"))
+        return get_object_or_404(
+            Device.objects.restrict(self.request.user, "view"), pk=kwargs.get("pk")
+        )

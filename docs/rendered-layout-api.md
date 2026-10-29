@@ -19,10 +19,23 @@ Token-authenticated, like the rest of the plugin's API. Requires `dcim.view_devi
 | Device does not exist, or exists but is outside the user's object-level permission scope | `404` |
 | User lacks `dcim.view_device` entirely | `403` |
 | Anonymous / unauthenticated | `401`/`403` (per NetBox's `LOGIN_REQUIRED` setting) |
-| Device exists and is visible, but has no `DeviceView` for its device type (or, for a Virtual Chassis, any member's device type) | `200`, `available: false`, `reason: "no_layout"` |
+| Device exists and is visible, but has no `DeviceView` that the user can view for its device type (or, for a Virtual Chassis, for the device type of any member that the user can view) | `200`, `available: false`, `reason: "no_layout"` |
 | A `DeviceView` exists but has no YAML layout (CSS-only/legacy) | `200`, `available: false`, `reason: "svg_layout_required"` |
 | A YAML layout exists but fails to parse | `200`, `available: false`, `reason: "invalid_layout"` (never a traceback) |
 | Everything resolves | `200`, `available: true`, one or more `panels` |
+
+### Object permissions
+
+The response includes only the objects that the requesting user can view. NetBox object permissions and their constraints apply to each object:
+
+- **Virtual Chassis members:** a member that the user cannot view has no panel. Its name and its components do not appear. When the user can view only one member, the panels have the keys and labels of a single device.
+- **DeviceView:** a `DeviceView` that the user cannot view counts as missing (`reason: "no_layout"`).
+- **Components:** an interface, console port, console-server port, front port or rear port that the user cannot view has no hotspot. Its element in the SVG has the default port fill, so the SVG does not show its state or cable colour.
+- **Peers:** `peer_labels` includes only the peers that the user can view. The label of a peer shows the name of its device.
+- **Cables:** a cable that the user cannot view gives `cable_color: null`, and the SVG does not show its colour.
+- **Modules:** a module that the user cannot view does not select a [module variant](layout-yaml.md#variant-definition).
+
+The Device View tab and the device page panel use the same rule.
 
 ---
 
@@ -91,8 +104,8 @@ Token-authenticated, like the rest of the plugin's API. Requires `dcim.view_devi
 | `x`, `y`, `width`, `height` | int | Hotspot geometry in the same coordinate space as the panel's `svg`/`viewBox` — apply one transform to both. |
 | `enabled` | bool | Always `true` for port-type components (they have no enabled flag); reflects `Interface.enabled` for interfaces. |
 | `connection_state` | string | `"connected"` \| `"partially_connected"` \| `"enabled"` \| `"disabled"`. `"partially_connected"` only applies to interfaces (a cable is attached but the traced path doesn't resolve to a far-end device) — see [SVG Renderer](svg-renderer.md#states). |
-| `cable_color` | string \| null | `null` = no cable attached. `""` = cable attached, no colour set (rendered with a diagonal no-colour pattern). `"rrggbb"` = the cable's configured colour. |
-| `peer_labels` | array of string | `"{device} | {name}"` per resolved peer (traced endpoint for interfaces, direct cable peer for ports). Empty when unconnected. |
+| `cable_color` | string \| null | `null` = no cable attached, or a cable that the user cannot view. `""` = cable attached, no colour set (rendered with a diagonal no-colour pattern). `"rrggbb"` = the cable's configured colour. |
+| `peer_labels` | array of string | `"{device} | {name}"` per resolved peer that the user can view: the traced endpoints when the component has them, otherwise the direct cable peers. Empty when unconnected. |
 | `trace_supported` | bool | Whether NetBox's REST trace endpoint (`GET /api/dcim/{type}s/{id}/trace/`) exists for this object type. `true` for interfaces, console ports and console-server ports; `false` for front/rear ports, which use `PassThroughPortMixin` and have no `/trace/` action. |
 
 ---
@@ -116,7 +129,7 @@ A `DeviceView`'s own `render_mode` field (`css` or `svg`) controls which rendere
 
 ## Virtual Chassis
 
-A Virtual Chassis device returns one set of panels per member, in rack order (same ordering the web UI uses), each composed from that member's own device type's `DeviceView`. If **any** member's device type lacks an SVG-capable `DeviceView`, the whole response is `available: false` — there is no partial per-member fallback (this matches the existing `prepare_svg()` behaviour the web UI relies on). See [Virtual Chassis](virtual-chassis.md).
+A Virtual Chassis device returns one set of panels per member, in rack order (same ordering the web UI uses), each composed from that member's own device type's `DeviceView`. Members that the user cannot view are left out. If the device type of **any** other member lacks an SVG-capable `DeviceView` that the user can view, the whole response is `available: false` — there is no partial per-member fallback (this matches the existing `prepare_svg()` behaviour the web UI relies on). See [Virtual Chassis](virtual-chassis.md).
 
 ---
 
