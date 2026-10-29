@@ -109,9 +109,7 @@ class DeviceViewListFilterTests(DeviceViewTestBase):
             with self.subTest(params):
                 response = self._list(params)
                 self.assertContains(response, self.cisco_type.get_absolute_url())
-                self.assertNotContains(
-                    response, self.ubiquiti_type.get_absolute_url()
-                )
+                self.assertNotContains(response, self.ubiquiti_type.get_absolute_url())
 
     def test_list_has_a_filters_tab(self):
         response = self._list({})
