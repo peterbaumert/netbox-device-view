@@ -1,6 +1,7 @@
 import re
 import unicodedata
 from collections import defaultdict
+from itertools import chain
 
 from dcim.models import (
     Cable,
@@ -276,9 +277,11 @@ def _peers(component):
 
 
 def label_connections(components, user):
-    """Set ``peer_labels`` and ``cable_color`` on each of ``components`` from the peers and cable that ``user`` can view.
+    """Set ``peer_labels`` and ``cable_color`` on each of ``components``.
 
-    ``cable_color`` is None without a cable that ``user`` can view, and "" for a cable without a colour.
+    Only the peers and the cable that ``user`` can view count. ``cable_color``
+    is None without a cable that ``user`` can view, and "" for a cable without
+    a colour.
     """
     components = list(components)
     peers = [(component, _peers(component)) for component in components]
@@ -327,13 +330,6 @@ def _device_ports(obj, user):
     return process_console_ports(obj, ports_chassis, obj.name, user)
 
 
-def _label_ports_chassis(ports_chassis, user):
-    label_connections(
-        [c for components in ports_chassis.values() for c in components], user
-    )
-    return ports_chassis
-
-
 def prepare(obj, user):
     """Return (dv, modules, ports_chassis, device_view) with the objects that ``user`` can view.
 
@@ -366,7 +362,8 @@ def prepare(obj, user):
     except ObjectDoesNotExist:
         return None, None, None, None
 
-    return dv, modules, _label_ports_chassis(ports_chassis, user), device_view
+    label_connections(chain.from_iterable(ports_chassis.values()), user)
+    return dv, modules, ports_chassis, device_view
 
 
 def prepare_svg(obj, user):
@@ -409,15 +406,18 @@ def prepare_svg(obj, user):
     except ObjectDoesNotExist:
         return None, None, None, None
 
-    return svg_views, modules, _label_ports_chassis(ports_chassis, user), device_view
+    label_connections(chain.from_iterable(ports_chassis.values()), user)
+    return svg_views, modules, ports_chassis, device_view
 
 
 def panel_title(obj, user):
     """Return the virtual chassis name of ``obj`` when ``user`` can view it, else the device name."""
-    chassis = VirtualChassis.objects.restrict(user, "view").filter(
-        pk=obj.virtual_chassis_id
-    )
-    if obj.virtual_chassis_id is not None and chassis.exists():
+    if (
+        obj.virtual_chassis_id is not None
+        and VirtualChassis.objects.restrict(user, "view")
+        .filter(pk=obj.virtual_chassis_id)
+        .exists()
+    ):
         return obj.virtual_chassis.name
     return obj.name
 

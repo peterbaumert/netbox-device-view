@@ -212,8 +212,8 @@ def _component_querysets(device, user):
 
 def _stylename_map(device, user) -> dict[str, ComponentStatus]:
     """Return {stylename: ComponentStatus} for every eligible component on
-    one device that ``user`` can view — the same key space PlacedElement.key
-    ("stylename") uses."""
+    one device that ``user`` can view. The keys are the key space that
+    PlacedElement.key ("stylename") uses."""
     interfaces, ports = _component_querysets(device, user)
     interfaces = list(interfaces)
     ports = list(chain.from_iterable(ports))

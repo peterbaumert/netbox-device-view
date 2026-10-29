@@ -23,6 +23,7 @@ from rest_framework.test import APIClient
 from users.constants import TOKEN_PREFIX
 from users.models import ObjectPermission, Token, User
 
+from netbox_device_view.layout.renderers.svg import COLOUR_PORT_DEFAULT
 from netbox_device_view.models import DeviceView, RenderMode
 
 GRID = '.deviceview.area{grid-template-areas:"gi-1 gi-2 te-1";}'
@@ -157,9 +158,12 @@ class ViewPermissionTests(TestCase):
         self.assertNotIn("sw2", json.dumps(body))
 
     def test_api_gives_no_hotspot_and_no_status_fill_for_a_hidden_component(self):
+        # With cable view, a leaked status of Gi2 shows as the colour of its cable.
+        self._grant(self.user, "dcim.view_cable")
         body = self._api()
         self.assertNotIn("Gi2", self._hotspots(body))
         self.assertNotIn("#00ff00", body["panels"][0]["svg"])
+        self.assertIn(f'fill="{COLOUR_PORT_DEFAULT}"', body["panels"][0]["svg"])
 
     def test_api_leaves_out_a_peer_that_the_user_cannot_view(self):
         self.assertEqual(self._hotspots(self._api())["Gi1"]["peer_labels"], [])
@@ -205,9 +209,10 @@ class ViewPermissionTests(TestCase):
                 self.assertNotIn("area d2", panel)
 
     def test_tab_leaves_out_a_component_that_the_user_cannot_view(self):
+        self._grant(self.user, "dcim.view_cable")
         for render_mode in (RenderMode.SVG, RenderMode.CSS):
             with self.subTest(render_mode):
-                panel = self._panel(render_mode)
+                panel = self._panel(render_mode, cable_colors="on")
                 self.assertIn("Gi1", panel)
                 self.assertNotIn("Gi2", panel)
                 self.assertNotIn("00ff00", panel)

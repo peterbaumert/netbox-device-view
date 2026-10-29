@@ -207,7 +207,7 @@ class TestProcessPortsStylename:
 
 
 # ---------------------------------------------------------------------------
-# prepare() — real device, device view and interfaces
+# prepare(): real device, device view and interfaces
 # ---------------------------------------------------------------------------
 
 

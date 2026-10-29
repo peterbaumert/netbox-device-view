@@ -129,7 +129,7 @@ A `DeviceView`'s own `render_mode` field (`css` or `svg`) controls which rendere
 
 ## Virtual Chassis
 
-A Virtual Chassis device returns one set of panels per member, in rack order (same ordering the web UI uses), each composed from that member's own device type's `DeviceView`. Members that the user cannot view are left out. If the device type of **any** other member lacks an SVG-capable `DeviceView` that the user can view, the whole response is `available: false` — there is no partial per-member fallback (this matches the existing `prepare_svg()` behaviour the web UI relies on). See [Virtual Chassis](virtual-chassis.md).
+A Virtual Chassis device returns one set of panels per member, in rack order (same ordering the web UI uses), each composed from that member's own device type's `DeviceView`. Members that the user cannot view are left out. If the device type of **any** other member lacks an SVG-capable `DeviceView` that the user can view, the whole response is `available: false`. There is no partial per-member fallback (this matches the existing `prepare_svg()` behaviour the web UI relies on). See [Virtual Chassis](virtual-chassis.md).
 
 ---
 
