@@ -4,6 +4,7 @@ import copy
 
 from dcim.models import Device, DeviceRole, DeviceType, Manufacturer, Site
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from rest_framework.test import APIClient
@@ -102,6 +103,57 @@ class SaveValidationTests(TestCase):
         self.assertEqual(response.json(), {"yaml_layout": [INVALID_ERROR]})
         device_view.refresh_from_db()
         self.assertEqual(device_view.yaml_layout, "")
+
+    def test_api_patch_without_the_layout_still_checks_a_stored_invalid_layout(self):
+        device_view = DeviceView.objects.create(
+            device_type=self.device_type,
+            grid_template_area=GRID,
+            yaml_layout=INVALID_YAML,
+        )
+        api = APIClient()
+        api.force_authenticate(self.user)
+        response = api.patch(
+            reverse(
+                "plugins-api:netbox_device_view-api:deviceview-detail",
+                kwargs={"pk": device_view.pk},
+            ),
+            {"render_mode": RenderMode.SVG},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {"yaml_layout": [INVALID_ERROR]})
+        device_view.refresh_from_db()
+        self.assertEqual(device_view.render_mode, RenderMode.CSS)
+
+
+class FieldValidationTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        manufacturer = Manufacturer.objects.create(name="Mfr", slug="mfr")
+        cls.device_type = DeviceType.objects.create(
+            manufacturer=manufacturer, model="Switch", slug="switch"
+        )
+
+    def device_view(self, **fields):
+        return DeviceView(
+            device_type=self.device_type, grid_template_area=GRID, **fields
+        )
+
+    def test_excluding_the_layout_skips_its_parse(self):
+        self.device_view(yaml_layout=INVALID_YAML).full_clean(
+            exclude=["yaml_layout"], validate_unique=False
+        )
+
+    def test_a_blank_layout_is_not_parsed(self):
+        self.device_view(yaml_layout="  \n").full_clean(validate_unique=False)
+
+    def test_a_layout_error_is_reported_with_the_other_field_errors(self):
+        with self.assertRaises(ValidationError) as caught:
+            self.device_view(yaml_layout=INVALID_YAML, render_mode="bogus").full_clean(
+                validate_unique=False
+            )
+        self.assertEqual(caught.exception.message_dict["yaml_layout"], [INVALID_ERROR])
+        self.assertIn("render_mode", caught.exception.message_dict)
 
 
 def _plugin_config(**options):
