@@ -364,7 +364,8 @@ class TestGridAreas:
                         "canvas": {"rows": 1},
                         "elements": [{"key": "p1", "at": {"row": 2}}],
                     }
-                ),
+                )
+                or d.pop("variants"),
                 "views.rear",
                 "p1",
             ),
