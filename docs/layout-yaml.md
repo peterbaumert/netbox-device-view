@@ -141,7 +141,7 @@ views:
 
 `key` is required for port-like kinds. For `spacer` and `blank`, it is auto-generated if omitted.
 
-Each key becomes a CSS grid area, and a browser ignores the whole grid when an area is not one rectangle. Do not let elements overlap, and give one key only to elements that together fill one rectangle. The [Data Source import](import-from-data-source.md) rejects a layout that breaks this rule.
+Each key becomes a CSS grid area, and a browser ignores the whole grid when an area is not one rectangle. Do not let elements overlap, and give one key only to elements that together fill one rectangle. The [Data Source import](import-from-data-source.md) rejects a layout that breaks this rule. The import accepts an element over a `spacer`, a `blank` or a `label`, for example a module port of a variant over a spacer of its view. It rejects an element over a port.
 
 **Kind values:**
 

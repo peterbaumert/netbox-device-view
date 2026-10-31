@@ -903,8 +903,7 @@ class StrictYamlImportTests(DataSourceImportTestBase):
                 response = self.review_file(f"examples/{name}.yaml", content)
                 review = response.context["review"]
                 self.assertIn(
-                    f"{where}: the cells of grid area 'big' do not make one rectangle",
-                    review.rows[0].error,
+                    f"{where}: element 'small' covers port 'big'.", review.rows[0].error
                 )
                 self.assertEqual(review.token, "")
                 self.assertNotContains(response, "Apply import")

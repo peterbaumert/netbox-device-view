@@ -63,8 +63,8 @@ def render(layout: NormalizedLayout) -> str:
         if view:
             parts.append(_render_view(view, selector_suffix=""))
             # Render variants for this view
-            for variant_name, variant_elements in view.variants.items():
-                parts.append(_render_variant(view, variant_name, variant_elements))
+            for variant_name in view.variants:
+                parts.append(_render_variant(view, variant_name))
 
     return "\n".join(parts)
 
@@ -79,28 +79,14 @@ def _render_view(view: LayoutView, selector_suffix: str) -> str:
     return _build_css_block(selector, view.canvas, grid_areas)
 
 
-def _render_variant(
-    base_view: LayoutView,
-    variant_name: str,
-    variant_elements: list[PlacedElement],
-) -> str:
+def _render_variant(base_view: LayoutView, variant_name: str) -> str:
     """Render a module variant overlay CSS block."""
     deviceview, area = GRID_CLASSES
     selector = f".{deviceview}.{MODULE_CLASS_PREFIX}{variant_name}.{area}"
     grid_areas = _elements_to_grid_template_areas(
-        variant_render_elements(base_view, variant_elements), base_view.canvas
+        base_view.elements_for_variant(variant_name), base_view.canvas
     )
     return _build_css_block(selector, base_view.canvas, grid_areas)
-
-
-def variant_render_elements(
-    base_view: LayoutView, variant_elements: list[PlacedElement]
-) -> list[PlacedElement]:
-    """Return the elements that a variant renders: the base elements, replaced by key."""
-    merged: dict[str, PlacedElement] = {el.key: el for el in base_view.elements}
-    for el in variant_elements:
-        merged[el.key] = el
-    return list(merged.values())
 
 
 def _build_css_block(

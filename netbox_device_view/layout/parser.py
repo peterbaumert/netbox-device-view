@@ -81,7 +81,9 @@ A view can copy another view's row definitions and add overrides:
 
 from __future__ import annotations
 
+import itertools
 import re
+from collections import Counter
 from dataclasses import dataclass
 from typing import Any
 
@@ -96,13 +98,9 @@ from .model import (
     LayoutView,
     NormalizedLayout,
     PlacedElement,
+    replace_by_key,
 )
-from .renderers.css_grid import (
-    area_grid,
-    non_rectangular_area,
-    painted_area,
-    variant_render_elements,
-)
+from .renderers.css_grid import area_grid, non_rectangular_area, painted_area
 
 # ── Schema version supported by this parser ──────────────────────────────────
 SUPPORTED_VERSION = 1
@@ -600,10 +598,7 @@ def _compile_view(
 
     # Merge: base_elements first, then this view's elements override by key
     if base_elements:
-        merged: dict[str, PlacedElement] = {el.key: el for el in base_elements}
-        for el in elements:
-            merged[el.key] = el
-        elements = list(merged.values())
+        elements = replace_by_key(base_elements, elements)
 
     return LayoutView(face=face, canvas=canvas, elements=elements)
 
@@ -1160,18 +1155,16 @@ def _check_painted_cells(layout: NormalizedLayout) -> None:
     """Bound the cells that the CSS renderer paints over all views and variants."""
     painted = 0
     for view_name, view in layout.views.items():
-        cost = {id(el): _painted_cells(el, view.canvas) for el in view.elements}
-        painted += sum(cost.values())
         # A variant renders the base elements, and its own elements replace them by key.
-        base = {el.key: cost[id(el)] for el in view.elements}
-        base_total = sum(base.values())
+        base: Counter[str] = Counter()
+        for el in view.elements:
+            base[el.key] += _painted_cells(el, view.canvas)
+        base_total = base.total()
+        painted += base_total
         for elements in view.variants.values():
             keys = {el.key for el in elements}
-            painted += base_total - sum(base.get(key, 0) for key in keys)
-            painted += sum(
-                _painted_cells(el, view.canvas)
-                for el in {el.key: el for el in elements}.values()
-            )
+            painted += base_total - sum(base[key] for key in keys)
+            painted += sum(_painted_cells(el, view.canvas) for el in elements)
         if painted > MAX_PAINTED_CELLS:
             raise LayoutParseError(
                 f"views.{view_name}: the views and variants paint more than "
@@ -1184,17 +1177,35 @@ def _check_area_shapes(layout: NormalizedLayout) -> None:
     for view_name, view in layout.views.items():
         renders = [(f"views.{view_name}", view.elements)]
         renders += [
-            (f"variants.{name}", variant_render_elements(view, elements))
-            for name, elements in view.variants.items()
+            (f"variants.{name}", view.elements_for_variant(name))
+            for name in view.variants
         ]
         for where, elements in renders:
-            area = non_rectangular_area(area_grid(elements, view.canvas))
+            grid = area_grid(elements, view.canvas)
+            _check_ports_keep_their_cells(elements, view.canvas, grid, where)
+            area = non_rectangular_area(grid)
             if area is not None:
                 raise LayoutParseError(
                     f"{where}: the cells of grid area {area!r} do not make one "
                     "rectangle. Elements must not overlap, and elements with one "
                     "key must fill one rectangle."
                 )
+
+
+def _check_ports_keep_their_cells(
+    elements: list[PlacedElement],
+    canvas: CanvasConfig,
+    grid: list[list[str]],
+    where: str,
+) -> None:
+    """Reject an element painted over a port; a port with no area is placed anywhere."""
+    for el in elements:
+        if el.is_port:
+            for r, c in itertools.product(*painted_area(el, canvas)):
+                if grid[r][c] != el.key:
+                    raise LayoutParseError(
+                        f"{where}: element {grid[r][c]!r} covers port {el.key!r}."
+                    )
 
 
 def _painted_cells(el: PlacedElement, canvas: CanvasConfig) -> int:

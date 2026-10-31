@@ -408,6 +408,23 @@ variants:
         base_block = css[:base_end]
         assert "te1-1" not in base_block
 
+    def test_variant_keeps_repeated_base_keys(self):
+        yaml = """
+version: 1
+canvas: {columns: 3, rows: 1}
+views:
+  front:
+    elements:
+      - {key: p1, at: {col: 1}}
+      - {key: p1, at: {col: 2}}
+variants:
+  V:
+    elements:
+      - {key: p2, at: {col: 3}}
+"""
+        variant_block = _render(yaml).split(".deviceview.moduleV.area")[1]
+        assert '"p1 p1 p2"' in variant_block
+
 
 # ---------------------------------------------------------------------------
 # End-to-end: C9300-24T CSS equivalence

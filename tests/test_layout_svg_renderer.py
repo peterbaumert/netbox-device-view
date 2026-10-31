@@ -545,6 +545,17 @@ variants:
         assert 'class="dv-variant' not in svg
         assert 'style="display:none"' not in svg
 
+    @pytest.mark.parametrize("variant_name", [None, "V"])
+    def test_repeated_base_keys_render_every_element(self, variant_name):
+        layout = parse(
+            "version: 1\ncanvas: {columns: 3, rows: 1}\n"
+            "views:\n  front:\n    elements:\n"
+            "      - {key: p1, at: {col: 1}}\n      - {key: p1, at: {col: 2}}\n"
+            "variants:\n  V:\n    elements: [{key: p2, at: {col: 3}}]\n"
+        )
+        svg = render(layout, variant_name=variant_name)
+        assert svg.count('class="dv-port-rect"') == (2 if variant_name is None else 3)
+
 
 # ---------------------------------------------------------------------------
 # render_view_svg helper

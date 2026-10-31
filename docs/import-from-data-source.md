@@ -147,6 +147,7 @@ If a file has the same layout as the device view, the result is **Unchanged**. T
 ## What the import checks
 
 - **Content:** YAML layouts must pass the [YAML layout](layout-yaml.md) validation. The import also rejects a YAML layout when:
+    - an element with another key covers a cell of a port in a view, or in a variant together with its view. A `spacer`, a `blank` or a `label` can be covered;
     - the cells of a key do not make one rectangle in a view, or in a variant together with its view. Overlapping elements are the usual cause;
     - it has variants and both a front and a rear view;
     - a variant names a view that is not in `views`.

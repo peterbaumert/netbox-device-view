@@ -413,18 +413,13 @@ class TestAreaShapes:
     @pytest.mark.parametrize(
         ("data", "message"),
         [
-            (flat((4, 2), [BIG, SMALL]), "views.front: the cells of grid area 'big'"),
-            (
-                flat((4, 2), [BIG], [SMALL]),
-                "variants.V: the cells of grid area 'big'",
-            ),
-            (
-                flat((4, 2), [SMALL], [BIG]),
-                "variants.V: the cells of grid area 'big'",
-            ),
             (
                 flat((4, 1), [{"key": "p1"}, {"key": "p1", "at": {"col": 3}}]),
                 "views.front: the cells of grid area 'p1'",
+            ),
+            (
+                flat((4, 2), [{**BIG, "kind": "blank"}, SMALL]),
+                "views.front: the cells of grid area 'big'",
             ),
         ],
     )
@@ -439,10 +434,58 @@ class TestAreaShapes:
             flat((4, 1), [{"key": "p1"}, {"key": "p1", "at": {"col": 2}}]),
             flat((4, 2), [BIG], [{**BIG, "key": "big", "span": {"rows": 1}}]),
             flat((4, 2), [SMALL], [{"key": "small", "at": {"row": 1, "col": 1}}]),
+            flat(
+                (4, 2),
+                [
+                    {**BIG, "kind": "spacer"},
+                    {"key": "p1", "at": {"col": 2}, "span": {"rows": 2}},
+                ],
+            ),
+            flat((4, 1), [{"key": "p1"}, {"key": "p1", "at": {"col": 1}}]),
         ],
     )
     def test_rectangular_areas_are_accepted(self, data):
         strict(data)
+
+    @pytest.mark.parametrize(
+        ("data", "message"),
+        [
+            (
+                flat((4, 1), [{"key": "p1"}, {"key": "p2", "at": {"col": 1}}]),
+                "views.front: element 'p2' covers port 'p1'",
+            ),
+            (
+                flat((4, 2), [{"key": "p2", "at": {"row": 1, "col": 1}}, BIG]),
+                "views.front: element 'big' covers port 'p2'",
+            ),
+            (
+                flat((4, 2), [BIG, SMALL]),
+                "views.front: element 'small' covers port 'big'",
+            ),
+            (
+                flat((4, 2), [BIG], [SMALL]),
+                "variants.V: element 'small' covers port 'big'",
+            ),
+            (
+                flat((4, 2), [SMALL], [BIG]),
+                "variants.V: element 'small' covers port 'big'",
+            ),
+            (
+                flat((4, 1), [{"key": "p1"}, {"kind": "blank", "key": "x1"}]),
+                "views.front: element 'x1' covers port 'p1'",
+            ),
+        ],
+    )
+    def test_elements_over_a_port_are_rejected(self, data, message):
+        # A port that loses all its cells leaves the area shapes valid.
+        with pytest.raises(LayoutParseError, match=message):
+            strict(data)
+
+    def test_a_view_copy_keeps_repeated_keys(self):
+        data = flat((4, 1), [{"key": "p1"}, {"key": "p1", "at": {"col": 2}}])
+        data["views"]["rear"] = {"copy_from": "front"}
+
+        assert '"p1 p1 . ."' in render_css(strict(data)).split(".dRear")[1]
 
     def test_lenient_parse_accepts_overlaps(self):
         assert (
@@ -505,6 +548,15 @@ class TestReviewFindings:
 
         with pytest.raises(LayoutParseError, match=f"{MAX_PAINTED_CELLS} grid cells"):
             strict(layout(change))
+
+    def test_repeated_base_keys_are_charged_in_every_variant(self):
+        # Each variant renders all base elements, also those that share a key.
+        full = {"key": "p1", "span": {"rows": MAX_CANVAS_ROWS, "cols": 64}}
+        data = flat((64, MAX_CANVAS_ROWS), [full] * 5)
+        data["variants"] = {f"V{i}": {"elements": []} for i in range(3)}
+
+        with pytest.raises(LayoutParseError, match=f"{MAX_PAINTED_CELLS} grid cells"):
+            strict(data)
 
     def test_canvas_rows_are_bounded(self):
         with pytest.raises(LayoutParseError, match="rows"):
@@ -571,7 +623,7 @@ class TestReviewFindings:
         text = (
             "views:\n  front:\n    elements:\n"
             "      - &p1 {key: p1, label: one}\n"
-            "      - {<<: *p1, key: p2, label: two}\n"
+            "      - {<<: *p1, key: p2, label: two, at: {col: 2}}\n"
         )
         elements = strict(text).front.elements
         assert [(e.key, e.label) for e in elements] == [("p1", "one"), ("p2", "two")]
@@ -580,8 +632,8 @@ class TestReviewFindings:
         text = (
             "views:\n  front:\n    elements:\n"
             "      - &p1 {key: p1, label: one}\n"
-            "      - &p3 {key: p3, label: three, css_classes: [c]}\n"
-            "      - {<<: [*p1, *p3], key: p2}\n"
+            "      - &p3 {key: p3, label: three, css_classes: [c], at: {col: 2}}\n"
+            "      - {<<: [*p1, *p3], key: p2, at: {col: 3}}\n"
         )
         element = strict(text).front.elements[-1]
         assert (element.key, element.label, element.css_classes) == ("p2", "one", ["c"])
@@ -608,9 +660,8 @@ class TestReviewFindings:
     def test_element_position_and_span_are_bounded(self, field, value, limit):
         def place(n):
             return layout(
-                lambda d: front(d).update(
-                    rows=[], elements=[{"key": "p1", field: {value: n}}]
-                )
+                lambda d: d.update(variants={})
+                or front(d).update(rows=[], elements=[{"key": "p1", field: {value: n}}])
             )
 
         strict(place(limit))
