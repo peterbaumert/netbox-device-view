@@ -7,6 +7,7 @@ from dcim.models import DeviceType
 from django.conf import settings
 from django.urls import reverse
 
+from netbox_device_view import datasource_import
 from netbox_device_view.models import DeviceView
 
 from .test_datasource_import import APPLY_URL, EXAMPLE_PATH, EXAMPLE_YAML
@@ -46,6 +47,19 @@ class DataSourceImportInBranchTests(ConcurrentApplyTestBase):
             self.assertEqual(
                 DeviceView.objects.get().yaml_layout, EXAMPLE_YAML.read_text()
             )
+
+    def test_a_review_in_a_branch_does_not_apply_in_main(self):
+        from netbox_branching.utilities import activate_branch
+
+        token = self.token(EXAMPLE_PATH)
+        del self.clients[0].cookies["active_branch"]
+
+        response = self.clients[0].post(reverse(APPLY_URL), {"token": token})
+
+        self.assertContains(response, datasource_import.OTHER_BRANCH, status_code=400)
+        self.assertFalse(DeviceView.objects.exists())
+        with activate_branch(self.branch):
+            self.assertFalse(DeviceView.objects.exists())
 
     def test_a_rejected_import_leaves_no_change_records(self):
         from netbox_branching.models import ChangeDiff

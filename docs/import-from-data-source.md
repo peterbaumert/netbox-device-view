@@ -127,7 +127,7 @@ Click **Apply import**. Apply validates the content of all selected files before
 
 The change log of each device view records the import as a usual create or update.
 
-With [NetBox Branching](https://github.com/netboxlabs/netbox-branching), an import in an active branch writes the device views to that branch. Main does not change until you merge the branch. The Data Source and its files are always the ones in main.
+With [NetBox Branching](https://github.com/netboxlabs/netbox-branching), an import in an active branch writes the device views to that branch. Main does not change until you merge the branch. The Data Source and its files are always the ones in main. Apply an import in the branch where you reviewed it: a review from another branch, or from main, is rejected.
 
 ---
 

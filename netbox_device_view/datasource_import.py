@@ -55,6 +55,7 @@ TOO_MANY_ROWS = f"Select at most {MAX_BATCH_ROWS} files in one import."
 FILE_UNAVAILABLE = "The file is not available in this Data Source."
 REVIEW_AGAIN = "Review the import again."
 INVALID_TOKEN = "The review token is not valid."
+OTHER_BRANCH = f"The review was made in another branch. {REVIEW_AGAIN}"
 STALE_TARGET = (
     f"the device view or its device type changed after review. {REVIEW_AGAIN}"
 )
@@ -395,6 +396,8 @@ def review(user, source: DataSource, selections: list[Selection]) -> Review:
         result.token = signing.dumps(
             {
                 "user": user.pk,
+                # NetBox Branching gives each branch its own connection.
+                "connection": router.db_for_write(DeviceView),
                 "source": source.pk,
                 "rows": [row.to_payload() for row in reviewed],
             },
@@ -417,6 +420,8 @@ def apply(user, token: str) -> ApplyResult:
         raise ImportRejected(INVALID_TOKEN) from exc
     if not user.is_authenticated or payload["user"] != user.pk:
         raise ImportRejected("The review token belongs to a different user.")
+    if payload.get("connection") != router.db_for_write(DeviceView):
+        raise ImportRejected(OTHER_BRANCH)
     try:
         rows = [ReviewedRow.from_payload(row) for row in payload["rows"]]
     except (KeyError, TypeError, ValueError) as exc:
