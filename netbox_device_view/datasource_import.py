@@ -24,7 +24,7 @@ from core.signals import clear_events
 from dcim.models import DeviceType, Manufacturer
 from django.core import signing
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError, models, router, transaction
+from django.db import DEFAULT_DB_ALIAS, IntegrityError, models, router, transaction
 from django.db.models import Case, CharField, Func, Q, Sum, Value, When
 from django.db.models.functions import Length
 from extras.models import CustomField
@@ -435,8 +435,11 @@ def apply(user, token: str) -> ApplyResult:
         Action.UNCHANGED: result.unchanged,
     }
     try:
-        # NetBox Branching routes the targets to the connection of the active branch.
-        with transaction.atomic(using=router.db_for_write(DeviceView)):
+        # NetBox Branching routes the targets to the branch and its ChangeDiff rows to main.
+        with (
+            transaction.atomic(using=DEFAULT_DB_ALIAS),
+            transaction.atomic(using=router.db_for_write(DeviceView)),
+        ):
             _lock_targets(rows)
             for row, content in zip(rows, contents, strict=True):
                 action, device_view = _apply_row(user, source, row, content)

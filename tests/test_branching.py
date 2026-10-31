@@ -2,6 +2,8 @@
 
 import unittest
 
+from core.models import ObjectChange
+from dcim.models import DeviceType
 from django.conf import settings
 from django.urls import reverse
 
@@ -44,3 +46,29 @@ class DataSourceImportInBranchTests(ConcurrentApplyTestBase):
             self.assertEqual(
                 DeviceView.objects.get().yaml_layout, EXAMPLE_YAML.read_text()
             )
+
+    def test_a_rejected_import_leaves_no_change_records(self):
+        from netbox_branching.models import ChangeDiff
+        from netbox_branching.utilities import activate_branch
+
+        with activate_branch(self.branch):
+            other_type = DeviceType.objects.create(
+                manufacturer=self.device_type.manufacturer, model="Other", slug="other"
+            )
+        token = self.token_for(
+            [
+                (EXAMPLE_PATH, self.device_type),
+                ("examples/yaml/Cisco/Other.yaml", other_type),
+            ]
+        )
+        # The second target gets a device view after the review, so its row is stale.
+        with activate_branch(self.branch):
+            DeviceView.objects.create(device_type=other_type)
+
+        response = self.clients[0].post(reverse(APPLY_URL), {"token": token})
+
+        self.assertEqual(response.status_code, 400)
+        with activate_branch(self.branch):
+            self.assertEqual(DeviceView.objects.count(), 1)
+        self.assertFalse(ChangeDiff.objects.exists())
+        self.assertFalse(ObjectChange.objects.using("default").exists())
