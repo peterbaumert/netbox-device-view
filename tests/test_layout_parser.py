@@ -843,10 +843,13 @@ variants:
         with pytest.raises(LayoutParseError, match="key: must be a string"):
             parse(_yaml_with(path, value))
 
-    def test_non_string_view_name_is_a_front_view(self):
-        layout = parse("version: 1\nviews:\n  5:\n    elements: [{key: a}]\n")
-        assert layout.views[5].face == Face.FRONT
-        render_css(layout)
+    @pytest.mark.parametrize("name", ["5", "true", "null", "1.5"])
+    def test_non_string_view_name_is_a_parse_error(self, name):
+        # The renderers look up the views by the names front and rear only.
+        text = f"version: 1\nviews:\n  {name}:\n    elements: [{{key: a}}]\n"
+        assert validate(text) == [
+            f"views.{pyyaml.safe_load(name)} (view name): must be a string."
+        ]
 
     @pytest.mark.parametrize("path", _LIST_PATHS, ids=_path_id)
     @pytest.mark.parametrize(

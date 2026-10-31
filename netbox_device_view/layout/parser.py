@@ -461,6 +461,8 @@ def _compile_views(
     compiled_views: dict[str, LayoutView] = {}
     for view_name, view_data in raw_views.items():
         where = f"views.{view_name}"
+        if not isinstance(view_name, str):
+            raise LayoutParseError(f"{where} (view name): must be a string.")
         rules.text(view_name, f"{where} (view name)", _VIEW_NAMES)
         view_data = rules.mapping(view_data, "view", where)
         face = _parse_face(view_name)
@@ -531,8 +533,8 @@ def _compile_variants(
         view.variants[variant_name] = variant_elements
 
 
-def _parse_face(name: Any) -> Face:
-    return _FACES.get(str(name).lower(), Face.FRONT)
+def _parse_face(name: str) -> Face:
+    return _FACES.get(name.lower(), Face.FRONT)
 
 
 def _parse_canvas(
