@@ -186,11 +186,15 @@ class DeviceViewDataSourceImportView(DataSourceImportPermissionMixin, View):
                 {"form": form},
                 status=400,
             )
+        files = request.POST.getlist("file")
+        if len(files) > datasource_import.MAX_BATCH_ROWS:
+            messages.error(request, datasource_import.TOO_MANY_ROWS)
+            files = []
         params = {
             "source": form.cleaned_data["source"].pk,
             "prefix": form.cleaned_data["prefix"],
             "q": form.cleaned_data["q"],
-            "file": request.POST.getlist("file"),
+            "file": files,
         }
         for name in ("page", "per_page"):
             if name in request.POST:

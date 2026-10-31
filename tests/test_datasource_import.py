@@ -802,6 +802,19 @@ class CatalogSelectionTests(DataSourceImportTestBase):
         self.assertContains(response, datasource_import.TOO_MANY_ROWS)
         self.assertNotIn("file", submitted(response, START_URL))
 
+    def test_too_many_ticked_files_stay_out_of_the_redirect(self):
+        # Each ticked file adds to the redirect URL, which a server limits in length.
+        files = [str(pk) for pk in range(datasource_import.MAX_BATCH_ROWS + 1)]
+        response = self.client.post(
+            reverse(START_URL),
+            {"source": self.source.pk, "prefix": "examples/", "file": files},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertNotIn("file=", response.url)
+        page = self.client.get(response.url)
+        self.assertContains(page, datasource_import.TOO_MANY_ROWS)
+
 
 class StrictYamlImportTests(DataSourceImportTestBase):
     def test_bundled_yaml_examples_pass_review_unchanged(self):
