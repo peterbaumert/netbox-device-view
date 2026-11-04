@@ -1,0 +1,2 @@
+# The test-branching job in test.yml installs this pin. Dependabot updates it.
+netboxlabs-netbox-branching==1.2.3

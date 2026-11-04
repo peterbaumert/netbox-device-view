@@ -99,7 +99,7 @@ jobs:
         if: matrix.branching
         run: |
           uv pip install --python /opt/netbox/venv/bin/python \
-            --no-cache netboxlabs-netbox-branching==1.2.3
+            --no-cache -r .github/requirements-branching.txt
           cat >> /etc/netbox/config/configuration.py << 'EOF'
           from netbox_branching.utilities import DynamicSchemaDict
           DATABASES = DynamicSchemaDict(DATABASES)
