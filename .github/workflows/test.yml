@@ -11,7 +11,18 @@ on:
 
 jobs:
   test:
+    name: ${{ matrix.check }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - check: test
+            tests: tests/
+            branching: false
+          - check: test-branching
+            tests: tests/test_branching.py
+            branching: true
     container:
       image: netboxcommunity/netbox:v4.7.0
 
@@ -84,5 +95,35 @@ jobs:
           uv pip install --python /opt/netbox/venv/bin/python \
             --no-cache pytest pytest-django -e .
 
+      - name: Enable NetBox Branching
+        if: matrix.branching
+        run: |
+          uv pip install --python /opt/netbox/venv/bin/python \
+            --no-cache -r .github/requirements-branching.txt
+          cat >> /etc/netbox/config/configuration.py << 'EOF'
+          from netbox_branching.utilities import DynamicSchemaDict
+          DATABASES = DynamicSchemaDict(DATABASES)
+          DATABASE_ROUTERS = ['netbox_branching.database.BranchAwareRouter']
+          EOF
+          # netbox_branching must be the last plugin.
+          echo "PLUGINS.append('netbox_branching')" >> /etc/netbox/config/extra.py
+
       - name: Run tests
-        run: /opt/netbox/venv/bin/pytest tests/ -v
+        env:
+          TESTS: ${{ matrix.tests }}
+        run: /opt/netbox/venv/bin/pytest "$TESTS" -v --junitxml=pytest.xml
+
+      # The branching tests skip when the plugin is not enabled, so a skip means a broken setup.
+      - name: Check that no NetBox Branching test skipped
+        if: matrix.branching
+        run: |
+          /opt/netbox/venv/bin/python - << 'EOF'
+          import sys
+          import xml.etree.ElementTree as ET
+
+          suite = next(ET.parse("pytest.xml").getroot().iter("testsuite"))
+          tests, skipped = int(suite.get("tests")), int(suite.get("skipped"))
+          if tests == 0 or skipped:
+              sys.exit(f"{skipped} of {tests} NetBox Branching tests skipped.")
+          print(f"{tests} NetBox Branching tests ran.")
+          EOF

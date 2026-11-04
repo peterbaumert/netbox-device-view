@@ -1,0 +1,9 @@
+version: 2
+updates:
+  # Only the CI pin of NetBox Branching in .github/requirements-branching.txt.
+  - package-ecosystem: pip
+    directory: /.github
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
