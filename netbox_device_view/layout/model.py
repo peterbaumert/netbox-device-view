@@ -122,11 +122,17 @@ class LayoutView:
         is given, elements tagged with that variant are also included,
         replacing any base element with the same key.
         """
-        base = {el.key: el for el in self.elements if el.variant is None}
-        if variant_name and variant_name in self.variants:
-            for el in self.variants[variant_name]:
-                base[el.key] = el
-        return list(base.values())
+        base = [el for el in self.elements if el.variant is None]
+        return replace_by_key(base, self.variants.get(variant_name or "", []))
+
+
+def replace_by_key(
+    base: list[PlacedElement], overrides: list[PlacedElement]
+) -> list[PlacedElement]:
+    """Return ``base`` without the elements whose key ``overrides`` uses, then ``overrides``."""
+    # Several elements can share one key and fill one area together, so keep them all.
+    keys = {el.key for el in overrides}
+    return [el for el in base if el.key not in keys] + list(overrides)
 
 
 @dataclass

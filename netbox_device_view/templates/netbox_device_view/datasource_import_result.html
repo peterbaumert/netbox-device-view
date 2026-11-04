@@ -1,0 +1,39 @@
+{% extends 'generic/_base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Data Source Import" %}{% endblock %}
+
+{% block content %}
+  {% if error %}
+    <div class="alert alert-danger">
+      {% trans "The import was rejected. No records were changed." %} {{ error }}
+    </div>
+  {% else %}
+    {% for label, device_views in outcomes %}
+      <div class="card">
+        <h2 class="card-header">{{ label }}: {{ device_views|length }}</h2>
+        {% if device_views %}
+          <ul class="list-group list-group-flush">
+            {% for device_view, visible in device_views %}
+              <li class="list-group-item">
+                {% if visible %}<a href="{{ device_view.get_absolute_url }}">{{ device_view }}</a>{% else %}{{ device_view }}{% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+    {% endfor %}
+  {% endif %}
+  <div class="btn-list mt-3">
+    {% if target_form %}
+      <form method="post" action="{% url 'plugins:netbox_device_view:deviceview_datasource_import_review' %}">
+        {% csrf_token %}
+        <input type="hidden" name="step" value="review">
+        {% include 'netbox_device_view/inc/datasource_import_selection.html' %}
+        <button type="submit" class="btn btn-primary">{% trans "Review again" %}</button>
+      </form>
+    {% endif %}
+    <a href="{% url 'plugins:netbox_device_view:deviceview_datasource_import' %}" class="btn btn-outline-secondary">{% trans "Start a new import" %}</a>
+    <a href="{% url 'plugins:netbox_device_view:deviceview_list' %}" class="btn btn-outline-secondary">{% trans "Device Views" %}</a>
+  </div>
+{% endblock content %}

@@ -1,0 +1,7 @@
+<input type="hidden" name="source" value="{{ source_form.cleaned_data.source.pk }}">
+<input type="hidden" name="prefix" value="{{ source_form.cleaned_data.prefix }}">
+{% for datafile, field, replace in target_form.rows %}
+  <input type="hidden" name="file" value="{{ datafile.pk }}">
+  <input type="hidden" name="{{ field.html_name }}" value="{{ field.value }}">
+  {% if replace.value %}<input type="hidden" name="{{ replace.html_name }}" value="on">{% endif %}
+{% endfor %}

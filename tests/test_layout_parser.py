@@ -4,8 +4,14 @@ Tests for netbox_device_view.layout.parser
 These are pure unit tests — no Django, no DB, no NetBox required.
 """
 
-import pytest
+import ast
+import copy
+from pathlib import Path
 
+import pytest
+import yaml as pyyaml
+
+from netbox_device_view.layout import parser
 from netbox_device_view.layout.model import (
     ElementKind,
     Face,
@@ -43,6 +49,17 @@ class TestVersion:
     def test_unsupported_version_raises(self):
         with pytest.raises(LayoutParseError, match="Unsupported layout version"):
             _parse("version: 99\nviews: {}")
+
+    @pytest.mark.parametrize("value", ["abc", "null", "[1]", ".inf", ".nan"])
+    def test_non_integer_version_raises_parse_error(self, value):
+        with pytest.raises(LayoutParseError, match="version: must be an integer"):
+            _parse(f"version: {value}\nviews: {{}}")
+
+    def test_non_integer_field_raises_parse_error(self):
+        with pytest.raises(
+            LayoutParseError, match="canvas.columns: must be an integer"
+        ):
+            _parse("canvas:\n  columns: abc\nviews: {}")
 
     def test_non_mapping_raises(self):
         with pytest.raises(LayoutParseError, match="must be a YAML mapping"):
@@ -631,6 +648,30 @@ views:
 # ---------------------------------------------------------------------------
 
 
+_MAPPING_HELPERS = {"mapping", "optional_mapping", "named_mapping"}
+_MAPPINGS = {
+    "version": 1,
+    "meta": {"description": "d"},
+    "canvas": {"columns": 4, "rows": 1},
+    "views": {"front": {"canvas": {"columns": 4}, "rows": []}, "rear": {}},
+    "variants": {
+        "V": {"elements": [{"key": "k", "at": {"row": 1}, "span": {"cols": 1}}]}
+    },
+}
+_MAPPING_PATHS = [
+    ("meta",),
+    ("canvas",),
+    ("views",),
+    ("views", "front"),
+    ("views", "front", "canvas"),
+    ("views", "rear"),
+    ("variants",),
+    ("variants", "V"),
+    ("variants", "V", "elements", 0, "at"),
+    ("variants", "V", "elements", 0, "span"),
+]
+
+
 class TestValidate:
     def test_valid_returns_empty_list(self):
         yaml = "version: 1\nviews: {}"
@@ -641,6 +682,47 @@ class TestValidate:
         errors = validate("version: 99\nviews: {}")
         assert len(errors) > 0
         assert any("Unsupported" in e for e in errors)
+
+    def test_empty_view_variant_and_copy_source_parse_as_empty(self):
+        yaml = """
+version: 1
+views:
+  front:
+  rear:
+    copy_from: front
+variants:
+  NM-1:
+"""
+        assert validate(yaml) == []
+        layout = _parse(yaml)
+        assert layout.front.elements == []
+        assert layout.rear.elements == []
+        assert layout.front.variants == {"NM-1": []}
+
+    @pytest.mark.parametrize(
+        "path", _MAPPING_PATHS, ids=lambda p: ".".join(map(str, p))
+    )
+    @pytest.mark.parametrize("value", ["x", 5, [1]], ids=repr)
+    def test_non_mapping_value_is_read_as_empty(self, path, value):
+        data = copy.deepcopy(_MAPPINGS)
+        parent = data
+        for key in path[:-1]:
+            parent = parent[key]
+        parent[path[-1]] = value
+        assert validate(pyyaml.safe_dump(data)) == []
+
+    def test_mapping_helper_results_are_used(self):
+        # A discarded result leaves the raw value, which can be None or a string.
+        tree = ast.parse(Path(parser.__file__).read_text())
+        discarded = [
+            node.lineno
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Expr)
+            and isinstance(node.value, ast.Call)
+            and isinstance(node.value.func, ast.Attribute)
+            and node.value.func.attr in _MAPPING_HELPERS
+        ]
+        assert discarded == []
 
     def test_bad_yaml_returns_errors(self):
         errors = validate("key: [unclosed")

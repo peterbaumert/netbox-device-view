@@ -32,6 +32,14 @@ from ..model import (
     PlacedElement,
 )
 
+# The CSS import profile accepts these selector classes and sizing properties.
+GRID_CLASSES = ("deviceview", "area")
+FRONT_CLASS = "dFront"
+REAR_CLASS = "dRear"
+MODULE_CLASS_PREFIX = "module"
+AUTO_SIZING_PROPERTIES = ("grid-auto-rows", "grid-auto-columns")
+_GRID_SELECTOR = "".join(f".{name}" for name in GRID_CLASSES)
+
 
 def render(layout: NormalizedLayout) -> str:
     """
@@ -46,17 +54,17 @@ def render(layout: NormalizedLayout) -> str:
     if layout.has_separate_faces():
         # Patch-panel style: front and rear are separate selectors
         if layout.front:
-            parts.append(_render_view(layout.front, selector_suffix=".dFront"))
+            parts.append(_render_view(layout.front, selector_suffix=f".{FRONT_CLASS}"))
         if layout.rear:
-            parts.append(_render_view(layout.rear, selector_suffix=".dRear"))
+            parts.append(_render_view(layout.rear, selector_suffix=f".{REAR_CLASS}"))
     else:
         # Single-face device (switch, router, firewall)
         view = layout.front or layout.rear
         if view:
             parts.append(_render_view(view, selector_suffix=""))
             # Render variants for this view
-            for variant_name, variant_elements in view.variants.items():
-                parts.append(_render_variant(view, variant_name, variant_elements))
+            for variant_name in view.variants:
+                parts.append(_render_variant(view, variant_name))
 
     return "\n".join(parts)
 
@@ -66,25 +74,18 @@ def render(layout: NormalizedLayout) -> str:
 
 def _render_view(view: LayoutView, selector_suffix: str) -> str:
     """Render a single LayoutView to a CSS block."""
-    selector = f".deviceview.area{selector_suffix}"
+    selector = f"{_GRID_SELECTOR}{selector_suffix}"
     grid_areas = _elements_to_grid_template_areas(view.elements, view.canvas)
     return _build_css_block(selector, view.canvas, grid_areas)
 
 
-def _render_variant(
-    base_view: LayoutView,
-    variant_name: str,
-    variant_elements: list[PlacedElement],
-) -> str:
+def _render_variant(base_view: LayoutView, variant_name: str) -> str:
     """Render a module variant overlay CSS block."""
-    # Merge base + variant elements, variant wins on key conflicts
-    merged: dict[str, PlacedElement] = {el.key: el for el in base_view.elements}
-    for el in variant_elements:
-        merged[el.key] = el
-    all_elements = list(merged.values())
-
-    selector = f".deviceview.module{variant_name}.area"
-    grid_areas = _elements_to_grid_template_areas(all_elements, base_view.canvas)
+    deviceview, area = GRID_CLASSES
+    selector = f".{deviceview}.{MODULE_CLASS_PREFIX}{variant_name}.{area}"
+    grid_areas = _elements_to_grid_template_areas(
+        base_view.elements_for_variant(variant_name), base_view.canvas
+    )
     return _build_css_block(selector, base_view.canvas, grid_areas)
 
 
@@ -101,8 +102,7 @@ def _build_css_block(
 
     # Patch-panel views use auto sizing; standard views use fixed 20px cells
     if _is_patch_panel_canvas(canvas):
-        lines.append("    grid-auto-rows: auto;")
-        lines.append("    grid-auto-columns: auto;")
+        lines.extend(f"    {name}: auto;" for name in AUTO_SIZING_PROPERTIES)
 
     if grid_areas:
         area_lines = "\n".join(f'        "{row}"' for row in grid_areas)
@@ -126,41 +126,51 @@ def _elements_to_grid_template_areas(
     3. For elements spanning multiple rows/cols, fill all spanned cells with
        the same key (CSS grid-template-areas requires this).
     4. Convert each row to a space-separated string of area names.
-
-    CSS grid-template-areas does NOT allow a cell to be empty (".") unless
-    ALL cells in that column are empty — we replace empty cells with the
-    nearest spacer/blank key or a generated placeholder.
     """
+    return [" ".join(row) for row in area_grid(elements, canvas)]
+
+
+def area_grid(elements: list[PlacedElement], canvas: CanvasConfig) -> list[list[str]]:
+    """Return the area name of each canvas cell, or "." for an empty cell."""
     rows = canvas.rows
     cols = canvas.columns
 
     # grid[row][col] = area name ("." = empty)
     grid: list[list[str]] = [["." for _ in range(cols)] for _ in range(rows)]
 
-    # Sort elements to place in a predictable order
+    # Sort elements to place in a predictable order; a later element paints over an earlier one
     sorted_elements = sorted(elements, key=lambda e: (e.row, e.col))
 
     for el in sorted_elements:
-        r_start = el.row - 1  # convert to 0-based
-        c_start = el.col - 1
-        r_end = r_start + el.row_span
-        c_end = c_start + el.col_span
+        row_range, col_range = painted_area(el, canvas)
+        for r in row_range:
+            for c in col_range:
+                grid[r][c] = el.key
 
-        # Clamp to canvas bounds
-        r_end = min(r_end, rows)
-        c_end = min(c_end, cols)
+    return grid
 
-        for r in range(r_start, r_end):
-            for c in range(c_start, c_end):
-                if 0 <= r < rows and 0 <= c < cols:
-                    grid[r][c] = el.key
 
-    # Replace remaining "." placeholders with unique generated names
-    # CSS grid-template-areas requires that named areas form a contiguous
-    # rectangle; a lone "." in the middle can sometimes be a problem, but
-    # browsers handle it.  We leave them as "." for simplicity.
+def non_rectangular_area(rows: list[list[str]]) -> str | None:
+    """Return the first named area whose cells do not fill one rectangle, or None."""
+    # Browsers drop the whole grid-template-areas declaration for such an area.
+    cells: dict[str, list[tuple[int, int]]] = {}
+    for r, row in enumerate(rows):
+        for c, name in enumerate(row):
+            if name.strip("."):
+                cells.setdefault(name, []).append((r, c))
+    for name, spots in cells.items():
+        height = max(r for r, _ in spots) - min(r for r, _ in spots) + 1
+        width = max(c for _, c in spots) - min(c for _, c in spots) + 1
+        if len(spots) != height * width:
+            return name
+    return None
 
-    return [" ".join(row) for row in grid]
+
+def painted_area(el: PlacedElement, canvas: CanvasConfig) -> tuple[range, range]:
+    """Return the 0-based rows and columns that ``el`` paints, clamped to ``canvas``."""
+    rows = range(max(el.row - 1, 0), min(el.row - 1 + el.row_span, canvas.rows))
+    cols = range(max(el.col - 1, 0), min(el.col - 1 + el.col_span, canvas.columns))
+    return rows, cols
 
 
 def _is_patch_panel_canvas(canvas: CanvasConfig) -> bool:

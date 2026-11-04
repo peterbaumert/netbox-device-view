@@ -141,6 +141,8 @@ views:
 
 `key` is required for port-like kinds. For `spacer` and `blank`, it is auto-generated if omitted.
 
+Each key becomes a CSS grid area, and a browser ignores the whole grid when an area is not one rectangle. Do not let elements overlap, and give one key only to elements that together fill one rectangle. The [Data Source import](import-from-data-source.md) rejects a layout that breaks this rule. The import accepts an element over a `spacer`, a `blank` or a `label`, for example a module port of a variant over a spacer of its view. It rejects an element over a port.
+
 **Kind values:**
 
 | YAML value | Meaning |
@@ -165,11 +167,13 @@ variants:
   "C9300-NM-8X":          # must match the NetBox module model name exactly
     match: module          # always "module" for now
     view: front            # which view this variant applies to (default: front)
-    rows:                  # full row definition for this variant
+    rows:                  # elements that this variant adds
       - ...
 ```
 
-The variant is a *full replacement* of the base view for that face — not a delta. To keep the base ports, re-specify them alongside the new module ports.
+A variant adds its elements to the base elements of its view. A variant element replaces the base element that has the same key. The result must also obey the rectangle rule above.
+
+Use variants only in a layout with one view, and set `view` to that view. The CSS renderer writes no variants for a layout with a front and a rear view. The Data Source import rejects a variant in such a layout, and a variant whose `view` is not in `views`.
 
 ---
 

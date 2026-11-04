@@ -388,7 +388,7 @@ def _render_port_element(
     label = el.label or _abbreviate(key)
     safe_label = html.escape(label)
 
-    extra_classes = " ".join(el.css_classes)
+    extra_classes = html.escape(" ".join(el.css_classes))
     g_class = f"dv-port {safe_key}{' ' + extra_classes if extra_classes else ''}"
 
     # Port rect — fill is a CSS variable so templates can override per-port

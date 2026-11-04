@@ -15,11 +15,13 @@ Renders a visual front/rear panel of a device's physical ports and interfaces di
 - **Module variants** — swap port layouts when a module is installed
 - **Virtual Chassis** — renders each VC member as a separate panel
 - **Patch panels** — front and rear faces rendered side by side
+- **Import from a Data Source**: review and import YAML and CSS layouts from a NetBox Data Source, for example a Git repository
 
 ## Quick links
 
 - [Installation](installation.md)
 - [Configuration](configuration.md)
 - [YAML Layout reference](layout-yaml.md)
+- [Import from a Data Source](import-from-data-source.md)
 - [SVG Renderer](svg-renderer.md)
 - [Troubleshooting](troubleshooting.md)

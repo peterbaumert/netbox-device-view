@@ -1,0 +1,149 @@
+{% extends 'generic/_base.html' %}
+{% load helpers %}
+{% load i18n %}
+
+{% block title %}{% trans "Review Data Source Import" %}{% endblock %}
+
+{% block content %}
+  <form method="post" action="{% url 'plugins:netbox_device_view:deviceview_datasource_import_review' %}" class="card mb-3">
+    {% csrf_token %}
+    <input type="hidden" name="source" value="{{ source_form.cleaned_data.source.pk }}">
+    <input type="hidden" name="prefix" value="{{ source_form.cleaned_data.prefix }}">
+    <input type="hidden" name="step" value="review">
+    <h2 class="card-header">
+      {% blocktrans with source=source_form.cleaned_data.source %}Selected files from {{ source }}{% endblocktrans %}
+    </h2>
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead>
+          <tr>
+            <th scope="col" style="width: 1%">{% trans "Keep" %}</th>
+            <th scope="col">{% trans "Path" %}</th>
+            <th scope="col" class="w-50">{% trans "Device type" %}</th>
+            <th scope="col">{% trans "Existing device view" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for datafile, field, replace in target_form.rows %}
+            <tr>
+              <td>
+                <input type="checkbox" class="form-check-input" name="file" value="{{ datafile.pk }}" id="keep-{{ datafile.pk }}" checked aria-label="{% trans "Keep" %} {{ datafile.path }}">
+              </td>
+              <td class="font-monospace"><label for="keep-{{ datafile.pk }}">{{ datafile.path }}</label></td>
+              <td>
+                {{ field }}
+                {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+              </td>
+              <td>
+                <div class="form-check mb-0">
+                  <input type="checkbox" class="form-check-input" name="{{ replace.html_name }}" id="{{ replace.auto_id }}"{% if replace.value %} checked{% endif %}>
+                  <label class="form-check-label" for="{{ replace.auto_id }}">{% trans "Replace" %}</label>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="card-footer d-flex justify-content-between align-items-center gap-2">
+      <a href="{{ catalog_url }}" class="btn btn-outline-secondary">{% trans "Back to files" %}</a>
+      <button type="submit" class="btn btn-primary">{% trans "Review" %}</button>
+    </div>
+  </form>
+
+  {% if review %}
+    <div class="card">
+      <h2 class="card-header">{% trans "Review" %}</h2>
+      <div class="card-body">
+        {% for error in review.errors %}
+          <div class="alert alert-danger">{{ error }}</div>
+        {% endfor %}
+        <div class="alert alert-info mb-0">
+          {% trans "A device view applies to every device of its device type. A replacement changes the view of every device of that type." %}
+          {% trans "Rows with an existing device view are skipped unless you choose Replace." %}
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr>
+              <th scope="col">{% trans "Path" %}</th>
+              <th scope="col">{% trans "Format" %}</th>
+              <th scope="col">{% trans "Target" %}</th>
+              <th scope="col">{% trans "Action" %}</th>
+              <th scope="col">{% trans "Render mode" %}</th>
+              <th scope="col">{% trans "Result" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in review.rows %}
+              <tr>
+                <td class="font-monospace">{{ row.path|default:row.datafile_id }}</td>
+                <td>{{ row.format.label|placeholder }}</td>
+                <td>{% if row.device_type %}{{ row.device_type.manufacturer }} {{ row.device_type.model }}{% else %}{{ ''|placeholder }}{% endif %}</td>
+                <td>{{ row.action.label|placeholder }}</td>
+                <td>{{ row.render_mode_label|placeholder }}</td>
+                <td>
+                  {% if row.error %}
+                    <span class="text-danger">{{ row.error }}</span>
+                  {% elif row.is_skipped %}
+                    <span class="text-muted">{% trans "Not applied" %}</span>
+                  {% else %}
+                    <span class="text-success">{% trans "Ready" %}</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% if row.proposed_fields and not row.error %}
+                <tr>
+                  <td colspan="6">
+                    {% if not row.current_fields %}
+                      <details>
+                        <summary>{% trans "Proposed fields" %}</summary>
+                        {% for name, value in row.proposed_fields.items %}
+                          <h3 class="h6 mt-2">{{ name }}</h3>
+                          <pre class="border rounded p-2 mb-0 text-break" style="white-space: pre-wrap; max-height: 24rem;">{{ value }}</pre>
+                        {% endfor %}
+                      </details>
+                    {% elif row.changes %}
+                      <details>
+                        <summary>
+                          {% trans "Changed fields:" %}
+                          {% for change in row.changes %}<span class="font-monospace">{{ change.name }}</span>{% if not forloop.last %}, {% endif %}{% endfor %}
+                        </summary>
+                        {% for change in row.changes %}
+                          <h3 class="h6 mt-2">{{ change.name }}</h3>
+                          {% if change.lines is None %}
+                            <p class="text-muted mb-0">{% trans "The field is too large to show a difference." %}</p>
+                          {% else %}
+                            <pre class="border rounded p-2 mb-0 text-break" style="white-space: pre-wrap; max-height: 24rem;">{% for kind, line in change.lines %}<span class="{% if kind == 'add' %}text-success{% elif kind == 'remove' %}text-danger{% elif kind == 'hunk' %}text-muted{% endif %}">{{ line }}</span>
+{% endfor %}</pre>
+                          {% endif %}
+                        {% endfor %}
+                      </details>
+                    {% else %}
+                      <span class="text-muted">{% trans "The device view already has these fields." %}</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="card-footer text-end">
+        {% if review.token %}
+          <form method="post" action="{% url 'plugins:netbox_device_view:deviceview_datasource_import_apply' %}">
+            {% csrf_token %}
+            <input type="hidden" name="token" value="{{ review.token }}">
+            {% include 'netbox_device_view/inc/datasource_import_selection.html' %}
+            <button type="submit" class="btn btn-success">{% trans "Apply import" %}</button>
+          </form>
+        {% elif review.is_valid %}
+          <span class="text-muted">{% trans "Nothing to apply: every selected row is skipped." %}</span>
+        {% else %}
+          <span class="text-danger">{% trans "Correct the errors above and review again." %}</span>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+{% endblock content %}

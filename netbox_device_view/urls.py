@@ -16,6 +16,21 @@ urlpatterns = (
         views.DeviceViewBulkImportView.as_view(),
         name="deviceview_import",
     ),
+    path(
+        "device-view/import-from-data-source/",
+        views.DeviceViewDataSourceImportView.as_view(),
+        name="deviceview_datasource_import",
+    ),
+    path(
+        "device-view/import-from-data-source/review/",
+        views.DeviceViewDataSourceImportReviewView.as_view(),
+        name="deviceview_datasource_import_review",
+    ),
+    path(
+        "device-view/import-from-data-source/apply/",
+        views.DeviceViewDataSourceImportApplyView.as_view(),
+        name="deviceview_datasource_import_apply",
+    ),
     path("device-view/<int:pk>/", views.DeviceViewView.as_view(), name="deviceview"),
     path(
         "device-view/<int:pk>/edit/",

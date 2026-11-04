@@ -1,0 +1,144 @@
+{% extends 'generic/_base.html' %}
+{% load form_helpers %}
+{% load helpers %}
+{% load i18n %}
+
+{% block title %}{% trans "Import Device Views from a Data Source" %}{% endblock %}
+
+{% block content %}
+  <div class="row">
+    <div class="col">
+      <p class="text-muted">
+        {% trans "Configure and synchronize a Data Source in NetBox first. The import reads the synchronized files; it does not fetch them." %}
+        <a href="{% url 'core:datasource_list' %}">{% trans "Manage Data Sources" %}</a>
+      </p>
+      <form method="get" class="card mb-3">
+        <h2 class="card-header">{% trans "Source" %}</h2>
+        <div class="card-body">
+          {% render_field form.source %}
+          {% render_field form.prefix %}
+          <div class="text-end">
+            <button type="submit" class="btn btn-primary">{% trans "Show layout files" %}</button>
+          </div>
+        </div>
+      </form>
+
+      {% if page is not None %}
+        {# One form keeps the ticked files: page and search buttons post them back to this page. #}
+        <form method="post" action="{% url 'plugins:netbox_device_view:deviceview_datasource_import' %}" class="card">
+          {% csrf_token %}
+          <input type="hidden" name="source" value="{{ form.cleaned_data.source.pk }}">
+          <input type="hidden" name="prefix" value="{{ form.cleaned_data.prefix }}">
+          <input type="hidden" name="step" value="match">
+          {% if 'per_page' in request.GET %}<input type="hidden" name="per_page" value="{{ paginator.per_page }}">{% endif %}
+          {% for file_id in ticked_elsewhere %}<input type="hidden" name="file" value="{{ file_id }}">{% endfor %}
+          <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <h2 class="card-title mb-0">{% trans "Layout files" %}</h2>
+            <div class="input-group w-auto" role="search">
+              <input type="search" name="q" value="{{ form.cleaned_data.q }}" class="form-control" placeholder="{% trans "Search paths" %}" aria-label="{% trans "Search paths" %}">
+              <button type="submit" name="page" value="1" class="btn btn-outline-primary">{% trans "Search" %}</button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th scope="col" style="width: 1%"><span class="visually-hidden">{% trans "Select" %}</span></th>
+                  <th scope="col">{% trans "Path" %}</th>
+                  <th scope="col">{% trans "Format" %}</th>
+                  <th scope="col">{% trans "Suggested device type" %}</th>
+                  <th scope="col">{% trans "Device view" %}</th>
+                  <th scope="col">{% trans "Problems" %}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in rows %}
+                  <tr>
+                    <td>
+                      <input type="checkbox" class="form-check-input" name="file" value="{{ row.datafile.pk }}" id="file-{{ row.datafile.pk }}"{% if row.datafile.pk in ticked %} checked{% endif %} aria-label="{% trans "Select" %} {{ row.datafile.path }}">
+                    </td>
+                    <td><label for="file-{{ row.datafile.pk }}" class="font-monospace">{{ row.datafile.path }}</label></td>
+                    <td>{{ row.format.label }}</td>
+                    <td>
+                      {% if row.suggestion %}
+                        <a href="{{ row.suggestion.get_absolute_url }}">{{ row.suggestion.manufacturer }} {{ row.suggestion.model }}</a>
+                      {% else %}
+                        {{ ''|placeholder }}
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if row.device_view %}
+                        <a href="{{ row.device_view.get_absolute_url }}">{{ row.state.label }}</a>
+                      {% else %}
+                        {{ row.state.label|placeholder }}
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% for problem in row.problems %}<div class="text-warning small">{{ problem }}</div>{% endfor %}
+                    </td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td colspan="6" class="text-muted">
+                      {% if form.cleaned_data.q %}
+                        {% trans "No layout files match the search." %}
+                      {% else %}
+                        {% trans "No layout files below this directory." %}
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 border-top p-2">
+            {% if paginator.num_pages > 1 %}
+              <nav aria-label="{% trans "Page selection" %}">
+                <ul class="pagination mb-0">
+                  {% if page.has_previous %}
+                    <li class="page-item">
+                      <button type="submit" name="page" value="{{ page.previous_page_number }}" class="page-link" aria-label="{% trans "Previous page" %}"><i class="mdi mdi-chevron-left" aria-hidden="true"></i></button>
+                    </li>
+                  {% endif %}
+                  {% for p in page.smart_pages %}
+                    <li class="page-item{% if page.number == p %} active{% endif %}"{% if page.number == p %} aria-current="page"{% endif %}>
+                      {% if p %}
+                        <button type="submit" name="page" value="{{ p }}" class="page-link" aria-label="{% blocktrans with num=p %}Page {{ num }}{% endblocktrans %}">{{ p }}</button>
+                      {% else %}
+                        <span class="page-link" aria-hidden="true">&hellip;</span>
+                      {% endif %}
+                    </li>
+                  {% endfor %}
+                  {% if page.has_next %}
+                    <li class="page-item">
+                      <button type="submit" name="page" value="{{ page.next_page_number }}" class="page-link" aria-label="{% trans "Next page" %}"><i class="mdi mdi-chevron-right" aria-hidden="true"></i></button>
+                    </li>
+                  {% endif %}
+                </ul>
+              </nav>
+            {% endif %}
+            <small class="text-muted ms-auto">
+              {% blocktrans trimmed with start=page.start_index end=page.end_index total=paginator.count %}
+                Showing {{ start }}-{{ end }} of {{ total }}
+              {% endblocktrans %}
+            </small>
+          </div>
+          {% if rows %}
+            <div class="card-footer d-flex justify-content-end align-items-center gap-3">
+              {% if ticked_elsewhere %}
+                <span class="text-muted">
+                  {% blocktrans trimmed count counter=ticked_elsewhere|length %}
+                    {{ counter }} selected file is not shown here
+                  {% plural %}
+                    {{ counter }} selected files are not shown here
+                  {% endblocktrans %}
+                </span>
+              {% endif %}
+              <button type="submit" formaction="{% url 'plugins:netbox_device_view:deviceview_datasource_import_review' %}" class="btn btn-primary">{% trans "Assign device types" %}</button>
+            </div>
+          {% endif %}
+        </form>
+      {% endif %}
+    </div>
+  </div>
+{% endblock content %}

@@ -3,7 +3,7 @@
 ## Requirements
 
 - Python 3.12+
-- NetBox 3.5+ (see [COMPATIBILITY.md](https://github.com/peterbaumert/netbox-device-view/blob/main/COMPATIBILITY.md))
+- NetBox 4.5+ (see [COMPATIBILITY.md](https://github.com/peterbaumert/netbox-device-view/blob/main/COMPATIBILITY.md))
 
 ## Install the package
 

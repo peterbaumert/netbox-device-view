@@ -1,4 +1,5 @@
 import re
+import unicodedata
 
 from dcim.models import (
     ConsolePort,
@@ -17,6 +18,15 @@ from .layout import (
     parse as parse_layout,
 )
 from .models import DeviceView
+
+
+def normalize_grid_template_area(value: str) -> str:
+    """
+    Replace every Unicode space separator (category Zs) with an ASCII space; keep newlines.
+
+    Pasted text often holds U+00A0 and similar spaces, which grid-template-areas rejects.
+    """
+    return "".join(" " if unicodedata.category(ch) == "Zs" else ch for ch in value)
 
 
 def _derive_interface_stylename(name):

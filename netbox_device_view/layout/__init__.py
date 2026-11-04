@@ -83,13 +83,14 @@ def get_css_for_device_view(device_view) -> str:
     Returns
     -------
     str
-        Raw CSS text ready to inject into a <style> block.
+        CSS text ready to inject into a <style> block. Every "<" is a CSS
+        escape, so the text cannot close the element.
     """
     if device_view.has_yaml_layout:
-        layout = parse(device_view.yaml_layout)
-        return _render_css(layout)
-    # Legacy path — return as-is
-    return device_view.grid_template_area
+        css = _render_css(parse(device_view.yaml_layout))
+    else:
+        css = device_view.grid_template_area
+    return css.replace("<", "\\3c ")
 
 
 def get_svg_for_device_view(device_view, variant_name=None) -> str:

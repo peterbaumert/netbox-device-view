@@ -16,7 +16,7 @@ Renders a visual front/rear panel of a device's physical ports and interfaces di
 ## Requirements
 
 - Python 3.12+
-- NetBox 3.5+ (see [COMPATIBILITY.md](COMPATIBILITY.md))
+- NetBox 4.5+ (see [COMPATIBILITY.md](COMPATIBILITY.md))
 
 ## Installation
 
@@ -47,4 +47,4 @@ python manage.py migrate netbox_device_view
 python manage.py collectstatic --no-input
 ```
 
-For configuration options, layout formats, the SVG renderer, and troubleshooting see the **[full documentation](https://peterbaumert.github.io/netbox-device-view/)**.
+For configuration options, layout formats, importing layouts from a Data Source, the SVG renderer, and troubleshooting see the **[full documentation](https://peterbaumert.github.io/netbox-device-view/)**.
