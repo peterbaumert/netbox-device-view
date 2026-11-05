@@ -199,7 +199,8 @@ class DeviceViewDataSourceImportView(DataSourceImportPermissionMixin, View):
         for name in ("page", "per_page"):
             if name in request.POST:
                 params[name] = request.POST[name]
-        return redirect(f"{request.path}?{urlencode(params, doseq=True)}")
+        catalog = reverse("plugins:netbox_device_view:deviceview_datasource_import")
+        return redirect(f"{catalog}?{urlencode(params, doseq=True)}")
 
 
 class DeviceViewDataSourceImportReviewView(DataSourceImportPermissionMixin, View):
