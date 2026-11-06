@@ -40,6 +40,14 @@ If any of these conditions are not met, the plugin silently falls back to CSS re
 
 ---
 
+## "The device view cannot be shown because its YAML layout does not parse"
+
+The stored **YAML Layout** of the device type has an error. The message shows the error and its location in the layout. For a virtual chassis, the layout can belong to the device type of a different member.
+
+Edit the DeviceView and correct the layout. When you save a DeviceView, the plugin checks its YAML layout. The form, the bulk import and the REST API reject a layout that does not parse, so only a layout that was saved before this check can show this message.
+
+---
+
 ## Port status colours not showing in SVG mode
 
 Status classes (`bg-success`, `bg-warning`, `bg-secondary`, `bg-danger`) are applied by JavaScript at page load using the `data-stylename` attribute. Check that:

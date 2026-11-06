@@ -1,5 +1,8 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from netbox.models import NetBoxModel
+
+from .layout.parser import LayoutParseError, parse
 
 
 class RenderMode(models.TextChoices):
@@ -42,6 +45,21 @@ class DeviceView(NetBoxModel):
 
     def __str__(self):
         return f"{self.device_type.manufacturer} {self.device_type.model}"
+
+    def clean_fields(self, exclude=None):
+        # A field-level check, so full_clean(exclude=["yaml_layout"]) skips the parse.
+        errors = {}
+        try:
+            super().clean_fields(exclude=exclude)
+        except ValidationError as exc:
+            errors = exc.update_error_dict(errors)
+        if "yaml_layout" not in (exclude or ()) and self.has_yaml_layout:
+            try:
+                parse(self.yaml_layout)
+            except LayoutParseError as exc:
+                errors.setdefault("yaml_layout", []).append(str(exc))
+        if errors:
+            raise ValidationError(errors)
 
     def get_render_mode_color(self):
         return {"css": "secondary", "svg": "info"}.get(self.render_mode, "secondary")

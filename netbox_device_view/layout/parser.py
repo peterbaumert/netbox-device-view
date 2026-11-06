@@ -84,6 +84,7 @@ from __future__ import annotations
 import itertools
 import re
 from collections import Counter
+from collections.abc import Hashable
 from dataclasses import dataclass
 from typing import Any
 
@@ -135,7 +136,7 @@ MAX_CANVAS_ROWS = 64
 MAX_EXPANDED_ELEMENTS = 10000
 # Every view and variant renders its whole canvas grid again.
 MAX_RENDERED_CELLS = 4 * MAX_CANVAS_CELLS
-# Each element costs its painted cells, at least one, in every render that includes it.
+# Each element costs its painted cells in every render that includes it.
 MAX_PAINTED_CELLS = 4 * MAX_RENDERED_CELLS
 MAX_CELL_SIZE = 100
 MAX_LABEL_LENGTH = 64
@@ -260,10 +261,13 @@ class _Rules:
                 f"{where}: must have exactly one key of {', '.join(keys)}."
             )
 
-    def items(self, raw: Any, where: str) -> Any:
-        if self.strict and not isinstance(raw, list):
+    def items(self, raw: Any, where: str) -> list[Any]:
+        """Return ``raw`` as a list; lenient mode reads a non-list as empty."""
+        if isinstance(raw, list):
+            return raw
+        if self.strict:
             raise LayoutParseError(f"{where}: must be a list.")
-        return raw
+        return []
 
     def integer(
         self, raw: Any, where: str, minimum: int = 0, maximum: int | None = None
@@ -287,17 +291,26 @@ class _Rules:
         return raw
 
     def text(self, raw: Any, where: str, choices: tuple[str, ...] = ()) -> Any:
-        if self.strict and (
-            not isinstance(raw, str) or (choices and raw not in choices)
-        ):
+        """Return ``raw``; lenient mode rejects only an unhashable value, such as a list."""
+        if self.strict:
+            invalid = not isinstance(raw, str) or bool(choices and raw not in choices)
+        else:
+            invalid = not isinstance(raw, Hashable)
+        if invalid:
             expected = f"one of {', '.join(choices)}" if choices else "a string"
             raise LayoutParseError(f"{where}: must be {expected}.")
+        return raw
+
+    def optional_string(self, raw: Any, where: str) -> Any:
+        """Return ``raw``; lenient mode rejects a value that is not a string or None."""
+        if not self.strict and raw is not None and not isinstance(raw, str):
+            raise LayoutParseError(f"{where}: must be a string.")
         return raw
 
     def background(self, raw: Any, where: str) -> Any:
         """Return a strict background as tinycss2 serializes its one color value."""
         if not self.strict or raw is None:
-            return raw
+            return self.optional_string(raw, f"{where}.background")
         color = None
         if isinstance(raw, str):
             color = one_css_color(tinycss2.parse_component_value_list(raw))
@@ -305,8 +318,17 @@ class _Rules:
             raise LayoutParseError(f"{where}: background must be one CSS color.")
         return tinycss2.serialize(color)
 
-    def css_classes(self, raw: Any, where: str) -> Any:
-        if self.strict and not (
+    def css_classes(self, raw: Any, where: str) -> list[Any]:
+        """Return ``raw`` as a list; lenient mode reads a non-list as empty."""
+        # Lenient mode also rejects a non-string item, which the renderers cannot join.
+        if not self.strict:
+            classes = self.items(raw, where)
+            if not all(isinstance(c, str) for c in classes):
+                raise LayoutParseError(
+                    f"{where}.css_classes: must be a list of strings."
+                )
+            return classes
+        if not (
             isinstance(raw, list)
             and len(raw) <= MAX_CSS_CLASSES
             and all(_is_identifier(c) for c in raw)
@@ -439,6 +461,8 @@ def _compile_views(
     compiled_views: dict[str, LayoutView] = {}
     for view_name, view_data in raw_views.items():
         where = f"views.{view_name}"
+        if not isinstance(view_name, str):
+            raise LayoutParseError(f"{where} (view name): must be a string.")
         rules.text(view_name, f"{where} (view name)", _VIEW_NAMES)
         view_data = rules.mapping(view_data, "view", where)
         face = _parse_face(view_name)
@@ -615,8 +639,8 @@ def _compile_rows(
     Compile either a rows-based or flat elements-based definition into
     a list of PlacedElement objects.
     """
-    rules.items(rows, f"{where}.rows")
-    rules.items(flat_elements, f"{where}.elements")
+    rows = rules.items(rows, f"{where}.rows")
+    flat_elements = rules.items(flat_elements, f"{where}.elements")
     rules.one_source(rows, flat_elements, where)
     if flat_elements:
         return _compile_flat_elements(
@@ -767,7 +791,7 @@ def _compile_explicit_row(
     """Place an explicit list of elements into ``current_row``."""
     result: list[PlacedElement] = []
     col = row_cursors.get(current_row, 1)
-    rules.items(elements, where)
+    elements = rules.items(elements, where)
     for i, raw in enumerate(elements):
         if isinstance(raw, str):
             rules.take(1)
@@ -1061,7 +1085,7 @@ def _expand_element(
     at = rules.optional_mapping(raw.get("at"), "at", f"{where}.at")
     span = rules.optional_mapping(raw.get("span"), "span", f"{where}.span")
 
-    # Elements may extend past their canvas, but not past the largest canvas.
+    # Strict mode also checks the canvas of the view in _check_inside_canvas.
     row = rules.integer(
         at.get("row", default_row), f"{where}.at.row", 1, MAX_CANVAS_ROWS
     )
@@ -1079,16 +1103,18 @@ def _expand_element(
     key = raw.get("key", "")
     if rules.strict and "key" in raw and not _is_identifier(key):
         raise LayoutParseError(_key_error(where, key))
+    if key is not None and not isinstance(key, str):
+        raise LayoutParseError(f"{where}.key: must be a string.")
     if not key:
         if kind in _PORT_KINDS:
             raise LayoutParseError(f"Element of kind {kind_str!r} must have a 'key'.")
         # auto-generate for spacers/blanks
         key = f"{'s' if kind == ElementKind.SPACER else 'x'}{col}"
 
-    label = raw.get("label")
-    if "css_classes" in raw:
-        rules.css_classes(raw["css_classes"], where)
-    css_classes = raw.get("css_classes", []) or []
+    label = rules.optional_string(raw.get("label"), f"{where}.label")
+    css_classes = (
+        rules.css_classes(raw["css_classes"], where) if "css_classes" in raw else []
+    )
 
     face_str = rules.text(raw.get("face", "both"), f"{where}.face", tuple(_FACES))
     face = _FACES.get(face_str, Face.BOTH)
@@ -1147,8 +1173,23 @@ def _check_elements(layout: NormalizedLayout) -> None:
         for where, elements in element_sets:
             for el in elements:
                 _check_element(el, where)
+                _check_inside_canvas(el, view.canvas, view_name, where)
     _check_painted_cells(layout)
     _check_area_shapes(layout)
+
+
+def _check_inside_canvas(
+    el: PlacedElement, canvas: CanvasConfig, view_name: str, where: str
+) -> None:
+    """Reject an element that is not fully inside the canvas of its view."""
+    last_row = el.row + el.row_span - 1
+    last_col = el.col + el.col_span - 1
+    if last_row > canvas.rows or last_col > canvas.columns:
+        raise LayoutParseError(
+            f"{where}: element {el.key!r} at rows {el.row}-{last_row}, columns "
+            f"{el.col}-{last_col} is outside the canvas of view {view_name!r} "
+            f"({canvas.rows} rows, {canvas.columns} columns)."
+        )
 
 
 def _check_painted_cells(layout: NormalizedLayout) -> None:
@@ -1209,9 +1250,9 @@ def _check_ports_keep_their_cells(
 
 
 def _painted_cells(el: PlacedElement, canvas: CanvasConfig) -> int:
-    """Return the cells the renderer writes for ``el``, at least one."""
+    """Return the cells the renderer writes for ``el``."""
     rows, cols = painted_area(el, canvas)
-    return len(rows) * len(cols) or 1
+    return len(rows) * len(cols)
 
 
 def _key_error(where: str, key: Any) -> str:
