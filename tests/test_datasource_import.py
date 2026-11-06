@@ -22,7 +22,7 @@ from django.core import signing
 from django.core.management import call_command
 from django.db import connection, transaction
 from django.db.models.signals import post_save, pre_save
-from django.test import Client, TestCase, override_settings
+from django.test import Client, RequestFactory, TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils.text import slugify
@@ -33,6 +33,7 @@ from netbox_device_view import datasource_import
 from netbox_device_view.layout import parse_yaml, render_css
 from netbox_device_view.models import DeviceView, RenderMode
 from netbox_device_view.utils import normalize_grid_template_area
+from netbox_device_view.views import DeviceViewDataSourceImportView
 
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
 EXAMPLE_YAML = EXAMPLES / "yaml" / "Cisco" / "C9300-24T.yaml"
@@ -814,6 +815,19 @@ class CatalogSelectionTests(DataSourceImportTestBase):
         self.assertNotIn("file=", response.url)
         page = self.client.get(response.url)
         self.assertContains(page, datasource_import.TOO_MANY_ROWS)
+
+    def test_redirect_does_not_use_the_request_path(self):
+        # The resolver does not route a path such as "//host/", so call the view directly.
+        request = RequestFactory().post(
+            reverse(START_URL),
+            {"source": self.source.pk, "prefix": "examples/", "page": "2"},
+            PATH_INFO="//evil.example/",
+        )
+        request.user = self.user
+        response = DeviceViewDataSourceImportView.as_view()(request)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url.partition("?")[0], reverse(START_URL))
 
 
 class StrictYamlImportTests(DataSourceImportTestBase):
