@@ -169,10 +169,10 @@ def render_api_view(
 
     Returns ``(svg_markup, hotspots)`` where each hotspot is
     ``{"key": stylename, "x": int, "y": int, "width": int, "height": int}``
-    for every element where ``PlacedElement.is_port`` is True (ports,
-    interfaces, console ports — matches the real component set this
-    plugin currently collects; see utils.prepare_svg). Spacer/blank/label
-    elements are skipped entirely — no fill, no hotspot. The caller merges
+    for every element where ``PlacedElement.is_port`` is True. The real
+    components that the plugin collects are interfaces, front and rear
+    ports, console ports and console-server ports (see utils.prepare_svg).
+    Spacer/blank/label elements are skipped entirely — no fill, no hotspot. The caller merges
     these with real NetBox component data (name, object type/id,
     connection state, cable color, peers, ...) keyed by the same
     stylename.

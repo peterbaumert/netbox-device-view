@@ -1959,7 +1959,9 @@ class ReplacementTests(ReplacementTestBase):
             review, "+  description: &quot;Cisco Catalyst 9300-24T&quot;"
         )
         self.assertContains(review, "every device of that type")
-        self.assertNotContains(review, "sw1")
+        # The CSRF token is random text, so match the device link and text node only.
+        self.assertNotContains(review, self.device.get_absolute_url())
+        self.assertNotContains(review, ">sw1<")
 
         result = self.apply_page(review)
         self.assertEqual(result.status_code, 200)

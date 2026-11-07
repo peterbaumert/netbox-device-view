@@ -79,13 +79,13 @@ Token-authenticated, like the rest of the plugin's API. Requires `dcim.view_devi
 | `label` | string | Human-readable panel label, e.g. `"Front"`, `"Rear (member-2)"`. |
 | `width`, `height` | int | The SVG's pixel dimensions — matches the `viewBox`/`width`/`height` on the embedded `<svg>`. |
 | `svg` | string | Self-contained SVG markup (see [SVG output](#svg-output) below). |
-| `hotspots` | array | One entry per port/interface/console-port element that has a matching real NetBox component. |
+| `hotspots` | array | One entry per port-like element whose key matches a real NetBox component. |
 
 ### Hotspot
 
 | Field | Type | Notes |
 |---|---|---|
-| `object_type` | string | `"dcim.interface"` \| `"dcim.consoleport"` \| `"dcim.frontport"` \| `"dcim.rearport"` — Django's `app_label.model_name`, so it's safe to route on directly. Power ports are not yet collected by the plugin's layout pipeline (`utils.prepare_svg`), so they never appear here. |
+| `object_type` | string | `"dcim.interface"` \| `"dcim.consoleport"` \| `"dcim.consoleserverport"` \| `"dcim.frontport"` \| `"dcim.rearport"`. This is Django's `app_label.model_name`, so it's safe to route on directly. Power ports are not yet collected by the plugin's layout pipeline (`utils.prepare_svg`), so they never appear here. |
 | `object_id` | int | The real NetBox object's primary key — use this (with `object_type`) to navigate, not a URL. |
 | `name` | string | The component's real name, e.g. `"GigabitEthernet0/1"`. |
 | `x`, `y`, `width`, `height` | int | Hotspot geometry in the same coordinate space as the panel's `svg`/`viewBox` — apply one transform to both. |
@@ -93,7 +93,7 @@ Token-authenticated, like the rest of the plugin's API. Requires `dcim.view_devi
 | `connection_state` | string | `"connected"` \| `"partially_connected"` \| `"enabled"` \| `"disabled"`. `"partially_connected"` only applies to interfaces (a cable is attached but the traced path doesn't resolve to a far-end device) — see [SVG Renderer](svg-renderer.md#states). |
 | `cable_color` | string \| null | `null` = no cable attached. `""` = cable attached, no colour set (rendered with a diagonal no-colour pattern). `"rrggbb"` = the cable's configured colour. |
 | `peer_labels` | array of string | `"{device} | {name}"` per resolved peer (traced endpoint for interfaces, direct cable peer for ports). Empty when unconnected. |
-| `trace_supported` | bool | Whether NetBox's REST trace endpoint (`GET /api/dcim/{type}s/{id}/trace/`) exists for this object type. `true` for interfaces and console ports; `false` for front/rear ports, which use `PassThroughPortMixin` and have no `/trace/` action. |
+| `trace_supported` | bool | Whether NetBox's REST trace endpoint (`GET /api/dcim/{type}s/{id}/trace/`) exists for this object type. `true` for interfaces, console ports and console-server ports; `false` for front/rear ports, which use `PassThroughPortMixin` and have no `/trace/` action. |
 
 ---
 
@@ -122,7 +122,7 @@ A Virtual Chassis device returns one set of panels per member, in rack order (sa
 
 ## Performance
 
-The composition path (`netbox_device_view.api.rendered_layout`) prefetches cable terminations and cable-trace path objects for every component up front, using the same prefetch shapes NetBox's own `InterfaceViewSet`/`ConsolePortViewSet`/`FrontPortViewSet`/`RearPortViewSet` use (`dcim/api/views.py`) — one request never issues a query per port. This is covered by a regression test (`tests/test_api_rendered_layout.py::QueryCountTests`) that asserts query count doesn't scale with interface count.
+The composition path (`netbox_device_view.api.rendered_layout`) prefetches cable terminations and cable-trace path objects for every component up front, using the same prefetch shapes NetBox's own `InterfaceViewSet`/`ConsolePortViewSet`/`ConsoleServerPortViewSet`/`FrontPortViewSet`/`RearPortViewSet` use (`dcim/api/views.py`) — one request never issues a query per port. This is covered by a regression test (`tests/test_api_rendered_layout.py::QueryCountTests`) that asserts query count doesn't scale with interface count.
 
 No caching (`ETag`/`Last-Modified`) is applied — connection state and cable colour can change at any time, and a stale cached response would show wrong data. This may be revisited if it becomes a real bottleneck.
 
