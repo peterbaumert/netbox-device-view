@@ -19,6 +19,13 @@
 * sanitize non-standard whitespace in Grid Template Area field ([3af7cad](https://github.com/peterbaumert/netbox-device-view/commit/3af7cad0b3cbda4dec4c112b1bf4a4e80de26800))
 * validate yaml_layout on save and reject bad layout values ([#70](https://github.com/peterbaumert/netbox-device-view/issues/70)) ([01910e2](https://github.com/peterbaumert/netbox-device-view/commit/01910e2b5463bdb000460492f88258b5873dd35d))
 
+### Upgrade notes
+
+* New dependency `tinycss2>=1.5`. pip installs it with the plugin; NetBox does not ship it, so a custom image or an offline install needs it too.
+* Saving a device view now parses its YAML layout, so the edit form, bulk import and REST API reject a layout that does not parse. A stored layout that does not parse shows a warning on the device page instead of a server error.
+* Layout rendering changes for stored layouts: a variant that names a view the layout does not define now creates that view with its own face (rear instead of front), and merged views (`copy_from`, variants) keep every element that shares a key instead of only the last one.
+* Console-server ports are now collected. In CSS mode, a layout without areas for their keys shows them as extra cells; add the keys to the layout. SVG mode does not draw them.
+
 ## [0.4.0](https://github.com/peterbaumert/netbox-device-view/compare/v0.3.0...v0.4.0) (2026-08-20)
 
 
