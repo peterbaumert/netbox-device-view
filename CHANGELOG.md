@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.5.0](https://github.com/peterbaumert/netbox-device-view/compare/v0.4.0...v0.5.0) (2026-11-07)
+
+
+### Features
+
+* declare min_version and expand PyPI classifiers ([e9dbc63](https://github.com/peterbaumert/netbox-device-view/commit/e9dbc6373699a43c939b5949c459264105eebe52))
+* highlight the currently-viewed device in a Virtual Chassis view ([b7061b3](https://github.com/peterbaumert/netbox-device-view/commit/b7061b334ec2167daa956ac1fbc8de49507ef447))
+* implement Quick Search for Device Views list view ([2419c4d](https://github.com/peterbaumert/netbox-device-view/commit/2419c4def560bc04e297d62017f126ec0cd94327))
+* import YAML and CSS layouts from Data Sources ([#68](https://github.com/peterbaumert/netbox-device-view/issues/68)) ([d911efb](https://github.com/peterbaumert/netbox-device-view/commit/d911efb1ee3bd2e2b2d16f2723373e07f59bb9c9))
+* render console-server ports in device views ([#72](https://github.com/peterbaumert/netbox-device-view/issues/72)) ([6e604f8](https://github.com/peterbaumert/netbox-device-view/commit/6e604f8f534b1000b48b8d67136675feaf47370c))
+
+
+### Bug Fixes
+
+* build the catalog redirect from the route name ([#71](https://github.com/peterbaumert/netbox-device-view/issues/71)) ([bb788a9](https://github.com/peterbaumert/netbox-device-view/commit/bb788a96b863b5ba40372b0d262709cd96ae53e2))
+* **ci:** repair COMPATIBILITY.md auto-insert; backfill missing rows ([42481ec](https://github.com/peterbaumert/netbox-device-view/commit/42481ec3d558609329e473bcd678c4861b5590aa))
+* sanitize non-standard whitespace in Grid Template Area field ([3af7cad](https://github.com/peterbaumert/netbox-device-view/commit/3af7cad0b3cbda4dec4c112b1bf4a4e80de26800))
+* validate yaml_layout on save and reject bad layout values ([#70](https://github.com/peterbaumert/netbox-device-view/issues/70)) ([01910e2](https://github.com/peterbaumert/netbox-device-view/commit/01910e2b5463bdb000460492f88258b5873dd35d))
+
 ## [0.4.0](https://github.com/peterbaumert/netbox-device-view/compare/v0.3.0...v0.4.0) (2026-08-20)
 
 
