@@ -105,7 +105,7 @@ The Device View tab and the device page panel use the same rule.
 | `enabled` | bool | Always `true` for port-type components (they have no enabled flag); reflects `Interface.enabled` for interfaces. |
 | `connection_state` | string | `"connected"` \| `"partially_connected"` \| `"enabled"` \| `"disabled"`. `"partially_connected"` only applies to interfaces (a cable is attached but the traced path doesn't resolve to a far-end device) — see [SVG Renderer](svg-renderer.md#states). |
 | `cable_color` | string \| null | `null` = no cable attached, or a cable that the user cannot view. `""` = cable attached, no colour set (rendered with a diagonal no-colour pattern). `"rrggbb"` = the cable's configured colour. |
-| `peer_labels` | array of string | `"{device} | {name}"` per resolved peer that the user can view: the traced endpoints when the component has them, otherwise the direct cable peers. Empty when unconnected. |
+| `peer_labels` | array of string | `"{device} \| {name}"` per resolved peer that the user can view: the traced endpoints when the component has them, otherwise the direct cable peers. Empty when unconnected. |
 | `trace_supported` | bool | Whether NetBox's REST trace endpoint (`GET /api/dcim/{type}s/{id}/trace/`) exists for this object type. `true` for interfaces, console ports and console-server ports; `false` for front/rear ports, which use `PassThroughPortMixin` and have no `/trace/` action. |
 
 ---
