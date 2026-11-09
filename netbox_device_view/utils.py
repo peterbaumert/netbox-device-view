@@ -5,13 +5,20 @@ from itertools import chain
 
 from dcim.models import (
     Cable,
+    ConsolePort,
     ConsolePortTemplate,
+    ConsoleServerPort,
     ConsoleServerPortTemplate,
+    FrontPort,
     FrontPortTemplate,
+    Interface,
     InterfaceTemplate,
+    RearPort,
     RearPortTemplate,
     VirtualChassis,
 )
+from dcim.models.device_components import PathEndpoint
+from django.contrib.contenttypes.prefetch import GenericPrefetch
 from django.core.exceptions import ObjectDoesNotExist
 
 from .layout import (
@@ -200,10 +207,37 @@ def process_interfaces(interfaces, ports_chassis, dev):
     return ports_chassis
 
 
+def _peer_querysets():
+    return [
+        model.objects.select_related("device", "cable")
+        for model in (ConsolePort, ConsoleServerPort, FrontPort, RearPort, Interface)
+    ]
+
+
+def path_objects():
+    return GenericPrefetch("_path__path_objects", _peer_querysets())
+
+
+def cable_peers():
+    return GenericPrefetch("cable__terminations__termination", _peer_querysets())
+
+
+def _viewable(components, user):
+    """Return the components that ``user`` can view, with what label_connections() reads."""
+    queryset = (
+        components.restrict(user, "view")
+        .select_related("cable")
+        .prefetch_related(cable_peers())
+    )
+    if issubclass(queryset.model, PathEndpoint):
+        queryset = queryset.prefetch_related(path_objects())
+    return queryset
+
+
 def process_console_ports(device, ports_chassis, dev, user):
     """Add the console ports and console-server ports of ``device`` that ``user`` can view."""
     for ports in (device.consoleports, device.consoleserverports):
-        ports_chassis = process_ports(ports.restrict(user, "view"), ports_chassis, dev)
+        ports_chassis = process_ports(_viewable(ports, user), ports_chassis, dev)
     return ports_chassis
 
 
@@ -309,22 +343,18 @@ def label_connections(components, user):
 def _member_ports(member, ports_chassis, key, user):
     """Add the interfaces, console ports and console-server ports of ``member`` that ``user`` can view."""
     ports_chassis = process_interfaces(
-        member.interfaces.restrict(user, "view"), ports_chassis, key
+        _viewable(member.interfaces, user), ports_chassis, key
     )
     return process_console_ports(member, ports_chassis, key, user)
 
 
 def _device_ports(obj, user):
     """Return the ports_chassis of a device that is not in a virtual chassis."""
-    ports_chassis = process_interfaces(
-        obj.interfaces.restrict(user, "view"), {}, obj.name
-    )
+    ports_chassis = process_interfaces(_viewable(obj.interfaces, user), {}, obj.name)
     ports_chassis = process_ports(
-        obj.frontports.restrict(user, "view"), ports_chassis, "Front"
+        _viewable(obj.frontports, user), ports_chassis, "Front"
     )
-    ports_chassis = process_ports(
-        obj.rearports.restrict(user, "view"), ports_chassis, "Rear"
-    )
+    ports_chassis = process_ports(_viewable(obj.rearports, user), ports_chassis, "Rear")
     return process_console_ports(obj, ports_chassis, obj.name, user)
 
 

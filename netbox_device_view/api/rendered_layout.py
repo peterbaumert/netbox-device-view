@@ -42,8 +42,10 @@ from ..utils import (
     _derive_interface_stylename,
     _derive_port_stylename,
     _detect_variant,
+    cable_peers,
     label_connections,
     panel_members,
+    path_objects,
     viewable_device_view,
 )
 
@@ -148,21 +150,6 @@ def _fill_for(status: ComponentStatus) -> str:
     }[status.connection_state]
 
 
-def _peer_querysets():
-    return [
-        model.objects.select_related("device", "cable")
-        for model in (ConsolePort, ConsoleServerPort, FrontPort, RearPort, Interface)
-    ]
-
-
-def _path_objects():
-    return GenericPrefetch("_path__path_objects", _peer_querysets())
-
-
-def _cable_peers():
-    return GenericPrefetch("cable__terminations__termination", _peer_querysets())
-
-
 def _component_querysets(device, user):
     """Return (interfaces, [console_ports, console_server_ports, front_ports,
     rear_ports]) querysets of the components of one device that ``user`` can
@@ -188,24 +175,24 @@ def _component_querysets(device, user):
     console_ports = (
         ConsolePort.objects.restrict(user, "view")
         .filter(device=device)
-        .prefetch_related(_path_objects(), _cable_peers())
+        .prefetch_related(path_objects(), cable_peers())
     )
     console_server_ports = (
         ConsoleServerPort.objects.restrict(user, "view")
         .filter(device=device)
-        .prefetch_related(_path_objects(), _cable_peers())
+        .prefetch_related(path_objects(), cable_peers())
     )
     front_ports = (
         FrontPort.objects.restrict(user, "view")
         .filter(device=device)
         .exclude(type="virtual")
-        .prefetch_related(_cable_peers())
+        .prefetch_related(cable_peers())
     )
     rear_ports = (
         RearPort.objects.restrict(user, "view")
         .filter(device=device)
         .exclude(type="virtual")
-        .prefetch_related(_cable_peers())
+        .prefetch_related(cable_peers())
     )
     return interfaces, [console_ports, console_server_ports, front_ports, rear_ports]
 
