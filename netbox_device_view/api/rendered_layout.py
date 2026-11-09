@@ -31,7 +31,6 @@ from dcim.models import (
     Interface,
     RearPort,
 )
-from django.contrib.contenttypes.prefetch import GenericPrefetch
 
 from ..layout import parse as parse_layout
 from ..layout.model import Face, LayoutView
@@ -157,16 +156,7 @@ def _component_querysets(device, user):
         Interface.objects.restrict(user, "view")
         .filter(device=device)
         .exclude(type__in=("virtual", "lag"))
-        .prefetch_related(
-            GenericPrefetch(
-                "cable__terminations__termination",
-                [Interface.objects.select_related("device", "cable")],
-            ),
-            GenericPrefetch(
-                "_path__path_objects",
-                [Interface.objects.select_related("device", "cable")],
-            ),
-        )
+        .prefetch_related(path_objects(), cable_peers())
     )
     console_ports = (
         ConsolePort.objects.restrict(user, "view")

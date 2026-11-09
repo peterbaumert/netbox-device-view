@@ -589,7 +589,17 @@ class QueryCountTests(RenderedLayoutTestBase):
                 ),
             )
 
-        for make_port in (console_port, front_port):
+        def interface(device, n):
+            return (
+                Interface.objects.create(
+                    device=device, name=f"eth{n}", type="1000base-t"
+                ),
+                FrontPort.objects.create(
+                    device=peer, name=f"{device.name}-{n}", type="8p8c"
+                ),
+            )
+
+        for make_port in (console_port, front_port, interface):
             with self.subTest(make_port.__name__):
                 counts = []
                 for count in (2, 20):
