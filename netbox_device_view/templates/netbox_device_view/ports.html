@@ -58,7 +58,7 @@
 				{% if cable_colors == "on" and not int.cable_color %}
 				nocolor
 				{% elif cable_colors == "on" %}
-				{% elif int.enabled and int.connected_endpoints|length > 0 or int.is_port and int.link_peers|length > 0 %}
+				{% elif int.enabled and int.linked_endpoints or int.is_port and int.linked_peers %}
 				bg-success
 				{% elif int.enabled %}
 				bg-secondary
@@ -76,7 +76,7 @@
 				data-bs-delay='{"show":200,"hide":300}'
 				data-bs-custom-class="device-view-tooltip"
 			>
-				{% if int.enabled and int.connected_endpoints|length > 0  or int.is_port and int.link_peers|length > 0 %}
+				{% if int.enabled and int.linked_endpoints  or int.is_port and int.linked_peers %}
 				<span class="text-white"><i class="mdi mdi-check-bold"></i></span>
 				{% elif int.enabled %}
 				<span class="text-white"><i class="mdi mdi-check-bold"></i></span>
@@ -149,8 +149,8 @@ function dvInitPopover(el, opts) {
       traceUrl: "{{ int.get_absolute_url }}trace/",
       name: "{{ int.name|escapejs }}",
       enabled: {% if int.enabled or int.is_port %}true{% else %}false{% endif %},
-      connected: {% if int.connected_endpoints|length > 0 or int.is_port and int.link_peers|length > 0 %}true{% else %}false{% endif %},
-      partiallyConnected: {% if not int.is_port and int.link_peers|length > 0 and int.connected_endpoints|length == 0 %}true{% else %}false{% endif %},
+      connected: {% if int.linked_endpoints or int.is_port and int.linked_peers %}true{% else %}false{% endif %},
+      partiallyConnected: {% if not int.is_port and int.linked_peers and not int.linked_endpoints %}true{% else %}false{% endif %},
       cableColor: "{% if cable_colors == 'on' and int.cable_color %}{{ int.cable_color }}{% endif %}",
       cableNoColor: {% if cable_colors == "on" and not int.cable_color %}true{% else %}false{% endif %},
       peerLabels: [{% for label in int.peer_labels %}"{{ label }}"{% if not forloop.last %},{% endif %}{% endfor %}]

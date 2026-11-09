@@ -181,6 +181,24 @@ class ViewPermissionTests(TestCase):
         self.assertEqual(self._hotspots(body)["Gi1"]["cable_color"], "ff0000")
         self.assertIn("#ff0000", body["panels"][0]["svg"])
 
+    def test_a_hidden_cable_or_peer_does_not_connect_the_component(self):
+        # Gi1 has a cable to peer1 eth-Gi1; the user sees neither, then the cable only.
+        for grants in ((), (("dcim.view_cable", None),)):
+            for name, constraints in grants:
+                self._grant(self.user, name, constraints)
+            with self.subTest(grants=grants):
+                self.assertEqual(
+                    self._hotspots(self._api())["Gi1"]["connection_state"], "enabled"
+                )
+                self.assertNotIn("bg-success", self._panel(RenderMode.CSS))
+                self.assertNotIn("connected: true", self._panel(RenderMode.SVG))
+        self._grant(self.user, "dcim.view_interface", {"device__name": "peer1"})
+        self.assertEqual(
+            self._hotspots(self._api())["Gi1"]["connection_state"], "connected"
+        )
+        self.assertIn("bg-success", self._panel(RenderMode.CSS))
+        self.assertIn("connected: true", self._panel(RenderMode.SVG))
+
     def test_api_ignores_a_module_that_the_user_cannot_view(self):
         self.assertNotIn("Te1/1", self._hotspots(self._api()))
         self._grant(self.user, "dcim.view_module")

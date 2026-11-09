@@ -92,22 +92,18 @@ class ComponentStatus:
 def compute_component_status(component, *, is_port: bool) -> ComponentStatus:
     """Replicate ports.html's applyPortStatus() JS, in Python, for one component.
 
-    ``component.peer_labels`` and ``component.cable_color`` must be set by
-    ``label_connections()``.
+    ``label_connections()`` must set the connection facts of ``component``.
     """
     object_type = f"dcim.{type(component)._meta.model_name}"
 
     if is_port:
         enabled = True
-        link_peers = list(component.link_peers)
-        connected = bool(link_peers)
+        connected = bool(component.linked_peers)
         partially_connected = False
     else:
         enabled = bool(component.enabled)
-        connected_endpoints = list(component.connected_endpoints or [])
-        link_peers = list(component.link_peers)
-        connected = bool(connected_endpoints)
-        partially_connected = bool(link_peers) and not connected
+        connected = bool(component.linked_endpoints)
+        partially_connected = bool(component.linked_peers) and not connected
 
     if connected:
         state = "connected"

@@ -303,25 +303,29 @@ def _peer_label(peer):
     return str(peer)
 
 
-def _peers(component):
-    endpoints = getattr(component, "connected_endpoints", None)
-    return list(endpoints or []) or list(component.link_peers)
-
-
 def label_connections(components, user):
-    """Set ``peer_labels`` and ``cable_color`` on each of ``components``.
+    """Set the connection facts that ``user`` can view on each of ``components``.
 
-    Only the peers and the cable that ``user`` can view count. ``cable_color``
-    is None without a cable that ``user`` can view, and "" for a cable without
-    a colour.
+    ``peer_labels`` names the visible peers: the far ends of the path, else the
+    link peers. ``linked_endpoints`` and ``linked_peers`` hold the visible far
+    ends and link peers through a visible cable, as a hidden cable is no
+    cable. ``cable_color`` is None without a visible cable, and "" for a
+    visible cable without a colour.
     """
-    components = list(components)
-    peers = [(component, _peers(component)) for component in components]
+    links = [
+        (
+            component,
+            list(getattr(component, "connected_endpoints", None) or []),
+            list(component.link_peers),
+        )
+        for component in components
+    ]
     pks_by_model = defaultdict(set)
-    for _component, component_peers in peers:
-        for peer in component_peers:
+    for component, endpoints, link_peers in links:
+        for peer in (*endpoints, *link_peers):
             pks_by_model[type(peer)].add(peer.pk)
-    pks_by_model[Cable] = {c.cable_id for c in components if c.cable_id is not None}
+        if component.cable_id is not None:
+            pks_by_model[Cable].add(component.cable_id)
     visible = {
         (model, pk)
         for model, pks in pks_by_model.items()
@@ -329,15 +333,15 @@ def label_connections(components, user):
         .filter(pk__in=pks)
         .values_list("pk", flat=True)
     }
-    for component, component_peers in peers:
-        component.peer_labels = [
-            _peer_label(peer)
-            for peer in component_peers
-            if (type(peer), peer.pk) in visible
-        ]
-        component.cable_color = (
-            component.cable.color if (Cable, component.cable_id) in visible else None
-        )
+    for component, endpoints, link_peers in links:
+        endpoints = [peer for peer in endpoints if (type(peer), peer.pk) in visible]
+        link_peers = [peer for peer in link_peers if (type(peer), peer.pk) in visible]
+        cable_visible = (Cable, component.cable_id) in visible
+        linked = cable_visible or component.cable_id is None
+        component.peer_labels = [_peer_label(peer) for peer in endpoints or link_peers]
+        component.linked_endpoints = endpoints if linked else []
+        component.linked_peers = link_peers if linked else []
+        component.cable_color = component.cable.color if cable_visible else None
 
 
 def _member_ports(member, ports_chassis, key, user):
