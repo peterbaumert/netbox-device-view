@@ -5,14 +5,19 @@ import json
 from core.models import ObjectType
 from dcim.models import (
     Cable,
+    ConsolePort,
+    ConsoleServerPort,
     Device,
     DeviceRole,
     DeviceType,
+    FrontPort,
     Interface,
     Manufacturer,
     Module,
     ModuleBay,
     ModuleType,
+    PortMapping,
+    RearPort,
     Site,
     VirtualChassis,
 )
@@ -182,22 +187,51 @@ class ViewPermissionTests(TestCase):
         self.assertIn("#ff0000", body["panels"][0]["svg"])
 
     def test_a_hidden_cable_or_peer_does_not_connect_the_component(self):
-        # Gi1 has a cable to peer1 eth-Gi1; the user sees neither, then the cable only.
-        for grants in ((), (("dcim.view_cable", None),)):
+        # Gi1 has a cable to peer1 eth-Gi1: it connects only when both are visible.
+        cable = ("dcim.view_cable", None)
+        peer = ("dcim.view_interface", {"device__name": "peer1"})
+        for grants in ((), (cable,), (peer,), (cable, peer)):
+            ObjectPermission.objects.filter(
+                name__in=[
+                    f"{name} {constraints}" for name, constraints in (cable, peer)
+                ]
+            ).delete()
             for name, constraints in grants:
                 self._grant(self.user, name, constraints)
+            connected = len(grants) == 2
             with self.subTest(grants=grants):
                 self.assertEqual(
-                    self._hotspots(self._api())["Gi1"]["connection_state"], "enabled"
+                    self._hotspots(self._api())["Gi1"]["connection_state"],
+                    "connected" if connected else "enabled",
                 )
-                self.assertNotIn("bg-success", self._panel(RenderMode.CSS))
-                self.assertNotIn("connected: true", self._panel(RenderMode.SVG))
-        self._grant(self.user, "dcim.view_interface", {"device__name": "peer1"})
-        self.assertEqual(
-            self._hotspots(self._api())["Gi1"]["connection_state"], "connected"
-        )
-        self.assertIn("bg-success", self._panel(RenderMode.CSS))
-        self.assertIn("connected: true", self._panel(RenderMode.SVG))
+                self.assertEqual("bg-success" in self._panel(RenderMode.CSS), connected)
+                self.assertEqual(
+                    "connected: true" in self._panel(RenderMode.SVG), connected
+                )
+
+    def test_a_port_connects_through_its_link_peer_on_the_page_as_in_the_api(self):
+        # con0 reaches cs0 through the front and rear port of peer1.
+        peer = Device.objects.get(name="peer1")
+        con0 = ConsolePort.objects.create(device=self.sw1, name="con0")
+        front = FrontPort.objects.create(device=peer, name="F1", type="8p8c")
+        rear = RearPort.objects.create(device=peer, name="R1", type="8p8c")
+        PortMapping.objects.create(device=peer, front_port=front, rear_port=rear)
+        Cable(a_terminations=[con0], b_terminations=[front]).save()
+        cs0 = ConsoleServerPort.objects.create(device=peer, name="cs0")
+        Cable(a_terminations=[rear], b_terminations=[cs0]).save()
+        con0.refresh_from_db()
+        self.assertEqual(list(con0.connected_endpoints), [cs0])
+        for name in ("dcim.view_consoleport", "dcim.view_consoleserverport"):
+            self._grant(self.user, name)
+        self._grant(self.user, "dcim.view_cable")
+
+        def connected():
+            script = self._panel(RenderMode.SVG)
+            return script.split('name: "con0"', 1)[1].split("connected: ", 1)[1][:4]
+
+        self.assertEqual(connected(), "fals")
+        self._grant(self.user, "dcim.view_frontport")
+        self.assertEqual(connected(), "true")
 
     def test_api_ignores_a_module_that_the_user_cannot_view(self):
         self.assertNotIn("Te1/1", self._hotspots(self._api()))

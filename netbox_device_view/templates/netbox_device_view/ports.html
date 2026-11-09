@@ -149,7 +149,7 @@ function dvInitPopover(el, opts) {
       traceUrl: "{{ int.get_absolute_url }}trace/",
       name: "{{ int.name|escapejs }}",
       enabled: {% if int.enabled or int.is_port %}true{% else %}false{% endif %},
-      connected: {% if int.linked_endpoints or int.is_port and int.linked_peers %}true{% else %}false{% endif %},
+      connected: {% if int.is_port and int.linked_peers or not int.is_port and int.linked_endpoints %}true{% else %}false{% endif %},
       partiallyConnected: {% if not int.is_port and int.linked_peers and not int.linked_endpoints %}true{% else %}false{% endif %},
       cableColor: "{% if cable_colors == 'on' and int.cable_color %}{{ int.cable_color }}{% endif %}",
       cableNoColor: {% if cable_colors == "on" and not int.cable_color %}true{% else %}false{% endif %},
