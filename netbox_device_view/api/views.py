@@ -45,4 +45,4 @@ class DeviceRenderedLayoutView(RetrieveAPIView):
 
     def get(self, request, *args, **kwargs):
         device = self.get_object()
-        return Response(compose_rendered_layout(device))
+        return Response(compose_rendered_layout(device, request.user))

@@ -106,7 +106,7 @@ class ConsoleServerPortTests(TestCase):
             with self.subTest(name=name):
                 self.assertContains(response, f'data-stylename="{STYLENAMES[name]}"')
                 self.assertContains(response, f'detailUrl: "{port.get_absolute_url()}"')
-                self.assertContains(response, f'linkPeers: ["{peer}"]')
+                self.assertContains(response, f'peerLabels: ["{peer}"]')
 
     def test_rendered_layout_api_reports_device_and_module_ports(self):
         api = APIClient()

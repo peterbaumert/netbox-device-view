@@ -1,6 +1,7 @@
 """Request-level tests for the plugin's helper views."""
 
 from dcim.models import (
+    Cable,
     Device,
     DeviceRole,
     DeviceType,
@@ -101,3 +102,33 @@ class DeviceViewTabTests(TestCase):
     def test_svg_mode_without_ports_renders_no_panel(self):
         response = self._tab(RenderMode.SVG)
         self.assertNotContains(response, 'class="dv-svg-wrapper')
+
+    def test_the_tab_reads_the_cables_with_the_components(self):
+        peer = Device.objects.create(
+            name="peer",
+            device_type=self.device_type,
+            site=self.device.site,
+            role=self.device.role,
+        )
+        counts = []
+        for count in (2, 6):
+            Interface.objects.filter(device__in=(self.device, peer)).delete()
+            for n in range(count):
+                Cable(
+                    a_terminations=[
+                        Interface.objects.create(
+                            device=self.device, name=f"Gi{n}", type="1000base-t"
+                        )
+                    ],
+                    b_terminations=[
+                        Interface.objects.create(
+                            device=peer, name=f"Gi{n}", type="1000base-t"
+                        )
+                    ],
+                ).save()
+            with CaptureQueriesContext(connection) as queries:
+                self._tab(RenderMode.CSS)
+            counts.append(
+                len([q for q in queries if q["sql"].startswith('SELECT "dcim_cable"')])
+            )
+        self.assertEqual(counts[0], counts[1])

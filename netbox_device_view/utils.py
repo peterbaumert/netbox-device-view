@@ -1,13 +1,24 @@
 import re
 import unicodedata
+from collections import defaultdict
+from itertools import chain
 
 from dcim.models import (
+    Cable,
+    ConsolePort,
     ConsolePortTemplate,
+    ConsoleServerPort,
     ConsoleServerPortTemplate,
+    FrontPort,
     FrontPortTemplate,
+    Interface,
     InterfaceTemplate,
+    RearPort,
     RearPortTemplate,
+    VirtualChassis,
 )
+from dcim.models.device_components import PathEndpoint
+from django.contrib.contenttypes.prefetch import GenericPrefetch
 from django.core.exceptions import ObjectDoesNotExist
 
 from .layout import (
@@ -196,10 +207,37 @@ def process_interfaces(interfaces, ports_chassis, dev):
     return ports_chassis
 
 
-def process_console_ports(device, ports_chassis, dev):
-    """Add the console ports and console-server ports of ``device``."""
-    for ports in (device.consoleports.all(), device.consoleserverports.all()):
-        ports_chassis = process_ports(ports, ports_chassis, dev)
+def _peer_querysets():
+    return [
+        model.objects.select_related("device", "cable")
+        for model in (ConsolePort, ConsoleServerPort, FrontPort, RearPort, Interface)
+    ]
+
+
+def path_objects():
+    return GenericPrefetch("_path__path_objects", _peer_querysets())
+
+
+def cable_peers():
+    return GenericPrefetch("cable__terminations__termination", _peer_querysets())
+
+
+def _viewable(components, user):
+    """Return the components that ``user`` can view, with what label_connections() reads."""
+    queryset = (
+        components.restrict(user, "view")
+        .select_related("cable")
+        .prefetch_related(cable_peers())
+    )
+    if issubclass(queryset.model, PathEndpoint):
+        queryset = queryset.prefetch_related(path_objects())
+    return queryset
+
+
+def process_console_ports(device, ports_chassis, dev, user):
+    """Add the console ports and console-server ports of ``device`` that ``user`` can view."""
+    for ports in (device.consoleports, device.consoleserverports):
+        ports_chassis = process_ports(_viewable(ports, user), ports_chassis, dev)
     return ports_chassis
 
 
@@ -242,8 +280,90 @@ def _rack_sort_key(member):
         return (0, -float(pos), vc)
 
 
-def prepare(obj):
-    """Return (dv, modules, ports_chassis, device_view) for the given device.
+def panel_members(obj, user):
+    """Return the devices of the panels of ``obj`` that ``user`` can view, in rack order."""
+    if obj.virtual_chassis is None:
+        return [obj]
+    return sorted(
+        obj.virtual_chassis.members.restrict(user, "view").select_related("rack"),
+        key=_rack_sort_key,
+    )
+
+
+def viewable_device_view(device_type, user):
+    """Return the DeviceView of ``device_type``; a DeviceView that ``user`` cannot view does not exist."""
+    return DeviceView.objects.restrict(user, "view").get(device_type=device_type)
+
+
+def _peer_label(peer):
+    device = getattr(peer, "device", None)
+    name = getattr(peer, "name", None)
+    if device and name:
+        return f"{device} | {name}"
+    return str(peer)
+
+
+def label_connections(components, user):
+    """Set the connection facts that ``user`` can view on each of ``components``.
+
+    ``peer_labels`` names the visible peers: the far ends of the path, else the
+    link peers. ``linked_endpoints`` and ``linked_peers`` hold the visible far
+    ends and link peers through a visible cable, as a hidden cable is no
+    cable. ``cable_color`` is None without a visible cable, and "" for a
+    visible cable without a colour.
+    """
+    links = [
+        (
+            component,
+            list(getattr(component, "connected_endpoints", None) or []),
+            list(component.link_peers),
+        )
+        for component in components
+    ]
+    pks_by_model = defaultdict(set)
+    for component, endpoints, link_peers in links:
+        for peer in (*endpoints, *link_peers):
+            pks_by_model[type(peer)].add(peer.pk)
+        if component.cable_id is not None:
+            pks_by_model[Cable].add(component.cable_id)
+    visible = {
+        (model, pk)
+        for model, pks in pks_by_model.items()
+        for pk in model.objects.restrict(user, "view")
+        .filter(pk__in=pks)
+        .values_list("pk", flat=True)
+    }
+    for component, endpoints, link_peers in links:
+        endpoints = [peer for peer in endpoints if (type(peer), peer.pk) in visible]
+        link_peers = [peer for peer in link_peers if (type(peer), peer.pk) in visible]
+        cable_visible = (Cable, component.cable_id) in visible
+        linked = cable_visible or component.cable_id is None
+        component.peer_labels = [_peer_label(peer) for peer in endpoints or link_peers]
+        component.linked_endpoints = endpoints if linked else []
+        component.linked_peers = link_peers if linked else []
+        component.cable_color = component.cable.color if cable_visible else None
+
+
+def _member_ports(member, ports_chassis, key, user):
+    """Add the interfaces, console ports and console-server ports of ``member`` that ``user`` can view."""
+    ports_chassis = process_interfaces(
+        _viewable(member.interfaces, user), ports_chassis, key
+    )
+    return process_console_ports(member, ports_chassis, key, user)
+
+
+def _device_ports(obj, user):
+    """Return the ports_chassis of a device that is not in a virtual chassis."""
+    ports_chassis = process_interfaces(_viewable(obj.interfaces, user), {}, obj.name)
+    ports_chassis = process_ports(
+        _viewable(obj.frontports, user), ports_chassis, "Front"
+    )
+    ports_chassis = process_ports(_viewable(obj.rearports, user), ports_chassis, "Rear")
+    return process_console_ports(obj, ports_chassis, obj.name, user)
+
+
+def prepare(obj, user):
+    """Return (dv, modules, ports_chassis, device_view) with the objects that ``user`` can view.
 
     Returns (None, None, None, None) if no DeviceView is configured for the
     device type.
@@ -255,47 +375,35 @@ def prepare(obj):
 
     try:
         if obj.virtual_chassis is None:
-            device_view = DeviceView.objects.get(device_type=obj.device_type)
+            device_view = viewable_device_view(obj.device_type, user)
             dv[1] = get_css_for_device_view(device_view)
-            modules[1] = obj.modules.all()
-            ports_chassis = process_interfaces(
-                obj.interfaces.all(), ports_chassis, obj.name
-            )
-            ports_chassis = process_ports(obj.frontports.all(), ports_chassis, "Front")
-            ports_chassis = process_ports(obj.rearports.all(), ports_chassis, "Rear")
-            ports_chassis = process_console_ports(obj, ports_chassis, obj.name)
+            modules[1] = obj.modules.restrict(user, "view")
+            ports_chassis = _device_ports(obj, user)
         else:
-            members = sorted(
-                obj.virtual_chassis.members.select_related("rack").all(),
-                key=_rack_sort_key,
-            )
-            for member in members:
+            for member in panel_members(obj, user):
                 pos = member.vc_position
-                member_view = DeviceView.objects.get(device_type=member.device_type)
+                member_view = viewable_device_view(member.device_type, user)
                 member_css = get_css_for_device_view(member_view)
                 dv[pos] = re.sub(
                     r"\.area\b",
                     f".area.d{pos}",
                     member_css,
                 )
-                modules[member.vc_position] = member.modules.all()
-                ports_chassis = process_interfaces(
-                    member.interfaces.all(), ports_chassis, member.vc_position
-                )
-                ports_chassis = process_console_ports(
-                    member, ports_chassis, member.vc_position
-                )
+                modules[pos] = member.modules.restrict(user, "view")
+                ports_chassis = _member_ports(member, ports_chassis, pos, user)
     except ObjectDoesNotExist:
         return None, None, None, None
 
+    label_connections(chain.from_iterable(ports_chassis.values()), user)
     return dv, modules, ports_chassis, device_view
 
 
-def prepare_svg(obj):
+def prepare_svg(obj, user):
     """Return (svg_views, modules, ports_chassis, device_view) for SVG rendering.
 
     ``svg_views`` is a dict mapping position → SVG markup string.
-    Like ``prepare()``, returns (None, None, None, None) when no DeviceView exists.
+    Like ``prepare()``, returns (None, None, None, None) when no DeviceView exists,
+    and includes only the objects that ``user`` can view.
 
     For virtual chassis devices each member is rendered as its own SVG panel,
     keyed by vc_position — matching the ports_chassis key used by the template.
@@ -307,46 +415,47 @@ def prepare_svg(obj):
 
     try:
         if obj.virtual_chassis is None:
-            device_view = DeviceView.objects.get(device_type=obj.device_type)
-            member_modules = list(obj.modules.all())
+            device_view = viewable_device_view(obj.device_type, user)
+            member_modules = list(obj.modules.restrict(user, "view"))
             variant = _detect_variant(member_modules, device_view)
             svg_views[obj.name] = get_svg_for_device_view(
                 device_view, variant_name=variant
             )
             modules[obj.name] = member_modules
-            ports_chassis = process_interfaces(
-                obj.interfaces.all(), ports_chassis, obj.name
-            )
-            ports_chassis = process_ports(obj.frontports.all(), ports_chassis, "Front")
-            ports_chassis = process_ports(obj.rearports.all(), ports_chassis, "Rear")
-            ports_chassis = process_console_ports(obj, ports_chassis, obj.name)
+            ports_chassis = _device_ports(obj, user)
         else:
-            members = sorted(
-                obj.virtual_chassis.members.select_related("rack").all(),
-                key=_rack_sort_key,
-            )
-            for member in members:
+            for member in panel_members(obj, user):
                 pos = member.vc_position
-                member_view = DeviceView.objects.get(device_type=member.device_type)
-                member_modules = list(member.modules.all())
+                member_view = viewable_device_view(member.device_type, user)
+                member_modules = list(member.modules.restrict(user, "view"))
                 variant = _detect_variant(member_modules, member_view)
                 svg_views[pos] = get_svg_for_device_view(
                     member_view, variant_name=variant
                 )
                 modules[pos] = member_modules
-                ports_chassis = process_interfaces(
-                    member.interfaces.all(), ports_chassis, pos
-                )
-                ports_chassis = process_console_ports(member, ports_chassis, pos)
+                ports_chassis = _member_ports(member, ports_chassis, pos, user)
                 device_view = member_view
     except ObjectDoesNotExist:
         return None, None, None, None
 
+    label_connections(chain.from_iterable(ports_chassis.values()), user)
     return svg_views, modules, ports_chassis, device_view
 
 
-def device_view_context(obj):
-    """Return the render context for the device view of ``obj``, or None without one.
+def panel_title(obj, user):
+    """Return the virtual chassis name of ``obj`` when ``user`` can view it, else the device name."""
+    if (
+        obj.virtual_chassis_id is not None
+        and VirtualChassis.objects.restrict(user, "view")
+        .filter(pk=obj.virtual_chassis_id)
+        .exists()
+    ):
+        return obj.virtual_chassis.name
+    return obj.name
+
+
+def device_view_context(obj, user):
+    """Return the render context for the device view of ``obj`` that ``user`` sees, or None without one.
 
     ``layout_error`` holds the parse error of a stored layout that does not parse.
     """
@@ -361,20 +470,21 @@ def device_view_context(obj):
         "ports_chassis": None,
         "height": device_height_px(obj.device_type),
         "active_panel": active_panel_key(obj),
+        "panel_title": panel_title(obj, user),
     }
     try:
-        use_svg = DeviceView.objects.get(device_type=obj.device_type).use_svg
+        use_svg = viewable_device_view(obj.device_type, user).use_svg
     except DeviceView.DoesNotExist:
         use_svg = False
 
     try:
         if use_svg:
-            svg_views, modules, ports_chassis, device_view = prepare_svg(obj)
+            svg_views, modules, ports_chassis, device_view = prepare_svg(obj, user)
             # prepare_svg() gives None when a virtual chassis member has no device view.
             use_svg = svg_views is not None
             context["svg_views"] = svg_views
         if not use_svg:
-            dv, modules, ports_chassis, device_view = prepare(obj)
+            dv, modules, ports_chassis, device_view = prepare(obj, user)
             context["dv"] = dv
     except LayoutParseError as exc:
         context["layout_error"] = str(exc)
