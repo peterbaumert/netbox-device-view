@@ -50,6 +50,21 @@ See [SVG Renderer](svg-renderer.md) for full details on SVG mode.
 
 ---
 
+## Find device views
+
+The Device Views list (*Plugins → Device Views*) has a quick search and a **Filters** tab. The quick search finds the device views whose device type model or manufacturer name contains the text.
+
+The REST API (`GET /api/plugins/device_view/device-view/`) takes the same filters:
+
+| Parameter | Filters by |
+|---|---|
+| `q` | device type model or manufacturer name (contains, case-insensitive) |
+| `device_type_id`, `device_type` | device type ID or slug |
+| `manufacturer_id`, `manufacturer` | manufacturer ID or slug |
+| `id`, `tag` | device view ID or tag slug |
+
+---
+
 ## Object permissions
 
 The Device View tab and the device page panel show only the objects that you can view. NetBox object permissions and their constraints apply to each object:

@@ -13,11 +13,8 @@ from django.views import View
 from netbox.context import current_request
 from netbox.object_actions import (
     AddObject,
-    BulkDelete,
-    BulkEdit,
     BulkExport,
     BulkImport,
-    BulkRename,
     ObjectAction,
 )
 from netbox.views import generic
@@ -31,7 +28,7 @@ from utilities.views import (
 
 from netbox_device_view.forms import DeviceViewImportForm
 
-from . import datasource_import, forms, models, tables
+from . import datasource_import, filtersets, forms, models, tables
 from .utils import (
     device_view_context,
     get_stylenames_for_device_type,
@@ -60,14 +57,13 @@ class DeviceViewListView(generic.ObjectListView):
         device_count=Count("device_type__instances")
     )
     table = tables.DeviceViewTable
+    filterset = filtersets.DeviceViewFilterSet
+    filterset_form = forms.DeviceViewFilterForm
     actions = (
         AddObject,
         BulkImport,
         DataSourceImport,
         BulkExport,
-        BulkEdit,
-        BulkRename,
-        BulkDelete,
     )
 
 

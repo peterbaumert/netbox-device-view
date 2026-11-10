@@ -4,6 +4,7 @@ from rest_framework.generics import RetrieveAPIView
 from rest_framework.response import Response
 
 from .. import models
+from ..filtersets import DeviceViewFilterSet
 from .rendered_layout import compose_rendered_layout
 from .serializers import DeviceViewSerializer
 
@@ -11,6 +12,7 @@ from .serializers import DeviceViewSerializer
 class DeviceViewViewSet(NetBoxModelViewSet):
     queryset = models.DeviceView.objects.prefetch_related("tags")
     serializer_class = DeviceViewSerializer
+    filterset_class = DeviceViewFilterSet
 
 
 class DeviceRenderedLayoutView(RetrieveAPIView):
