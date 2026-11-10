@@ -12,7 +12,7 @@ class Ports(PluginTemplateExtension):
         if not isinstance(obj, Device):
             return ""
 
-        context = device_view_context(obj)
+        context = device_view_context(obj, self.context["request"].user)
         if context is None:
             return ""
 
