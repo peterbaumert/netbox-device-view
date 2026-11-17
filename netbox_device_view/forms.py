@@ -1,8 +1,18 @@
-from dcim.models import DeviceType
+from dcim.models import DeviceType, Manufacturer
 from django import forms
 from django.utils.translation import gettext_lazy as _
-from netbox.forms import NetBoxModelForm, NetBoxModelImportForm
-from utilities.forms.fields import CSVModelChoiceField, DynamicModelChoiceField
+from netbox.forms import (
+    NetBoxModelFilterSetForm,
+    NetBoxModelForm,
+    NetBoxModelImportForm,
+)
+from utilities.forms.fields import (
+    CSVModelChoiceField,
+    DynamicModelChoiceField,
+    DynamicModelMultipleChoiceField,
+    TagFilterField,
+)
+from utilities.forms.rendering import FieldSet
 
 from . import datasource_import
 from .models import DeviceView
@@ -35,6 +45,24 @@ class DeviceViewImportForm(SanitizeGridTemplateAreaMixin, NetBoxModelImportForm)
     class Meta:
         model = DeviceView
         fields = ("device_type", "grid_template_area", "yaml_layout", "render_mode")
+
+
+class DeviceViewFilterForm(NetBoxModelFilterSetForm):
+    model = DeviceView
+    fieldsets = (
+        FieldSet("q", "filter_id", "tag"),
+        FieldSet("manufacturer_id", "device_type_id", name=_("Hardware")),
+    )
+    manufacturer_id = DynamicModelMultipleChoiceField(
+        queryset=Manufacturer.objects.all(), required=False, label=_("Manufacturer")
+    )
+    device_type_id = DynamicModelMultipleChoiceField(
+        queryset=DeviceType.objects.all(),
+        required=False,
+        query_params={"manufacturer_id": "$manufacturer_id"},
+        label=_("Device type"),
+    )
+    tag = TagFilterField(model)
 
 
 class DataSourceImportSourceForm(forms.Form):
