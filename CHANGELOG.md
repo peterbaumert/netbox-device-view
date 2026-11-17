@@ -30,6 +30,10 @@
 * Layout rendering changes for stored layouts: a variant that names a view the layout does not define now creates that view with its own face (rear instead of front), and merged views (`copy_from`, variants) keep every element that shares a key instead of only the last one.
 * Console-server ports are now collected. In CSS mode, a layout without areas for their keys shows them as extra cells; add the keys to the layout. SVG mode does not draw them.
 
+### Thanks
+
+A big thank you to [@marcinpsk](https://github.com/marcinpsk), who contributed for the first time in this release: the Data Source import (#68), branching tests in CI (#69), layout validation (#70), the catalog redirect fix (#71), console-server ports (#72), object permissions (#73) and the device view filters (#74).
+
 ## [0.4.0](https://github.com/peterbaumert/netbox-device-view/compare/v0.3.0...v0.4.0) (2026-08-20)
 
 
