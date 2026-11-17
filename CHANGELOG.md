@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/peterbaumert/netbox-device-view/compare/v0.5.0...v0.5.1) (2026-11-17)
+
+
+### Documentation
+
+* thank marcinpsk in the 0.5.0 changelog ([8dfe286](https://github.com/peterbaumert/netbox-device-view/commit/8dfe286e8b3b39e61bdbf7436edf1df49b6247ba))
+
 ## [0.5.0](https://github.com/peterbaumert/netbox-device-view/compare/v0.4.0...v0.5.0) (2026-11-17)
 
 
